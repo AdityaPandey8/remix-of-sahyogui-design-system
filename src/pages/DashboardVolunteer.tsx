@@ -40,7 +40,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { calcPriorityScore } from "@/lib/ai-insights";
 import { useAuth } from "@/hooks/useAuth";
-import { VolunteerDetails, NGODetails } from "@/types/database";
+import { VolunteerDetails, NGODetails, UserProfile } from "@/types/database";
 
 const volNotifications: Notification[] = [
   { id: "n1", title: "New Task Assigned", message: "Food shortage relief task near you.", type: "warning", time: "3m ago", read: false },
