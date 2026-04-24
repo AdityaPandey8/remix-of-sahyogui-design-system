@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType } from "@/data/mockData";
+import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType, type Poll, type DiscussionComment, type AIWeights, polls as seedPolls, discussions as seedDiscussions, defaultAIWeights } from "@/data/mockData";
 import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, updateUserStatus } from "@/lib/supabase-service";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatWidget } from "@/components/dashboard/AIChatWidget";
@@ -22,6 +22,12 @@ import { CrisisDetailDialog } from "@/components/dashboard/CrisisDetailDialog";
 import { AlertDetailDialog } from "@/components/dashboard/AlertDetailDialog";
 import { TaskAssignDialog } from "@/components/dashboard/TaskAssignDialog";
 import { NetworkStatusWidget } from "@/components/dashboard/NetworkStatusWidget";
+import { PollManagementPanel } from "@/components/dashboard/PollManagementPanel";
+import { DiscussionModerationPanel } from "@/components/dashboard/DiscussionModerationPanel";
+import { CommunityInsightsPanel } from "@/components/dashboard/CommunityInsightsPanel";
+import { AIWeightControls } from "@/components/dashboard/AIWeightControls";
+import { TrendingMonitor } from "@/components/dashboard/TrendingMonitor";
+import { AIExplanationPanel } from "@/components/dashboard/AIExplanationPanel";
 import type { Notification } from "@/components/dashboard/NotificationBell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UrgencyBadge } from "@/components/UrgencyBadge";
@@ -34,20 +40,23 @@ import { cn } from "@/lib/utils";
 import {
   BarChart3, Users, AlertTriangle, CheckCircle, Clock, Plus, Megaphone,
   ShieldAlert, Brain, Send, Flag, Activity, LayoutDashboard, FileText,
-  Building2, UserCheck, Bell, History, Settings, ShieldCheck, ShieldOff, Trash2, Eye, Handshake, Sparkles, Loader2, Globe, User
+  Building2, UserCheck, Bell, History, Settings, ShieldCheck, ShieldOff, Trash2, Eye, Handshake, Sparkles, Loader2, Globe, User, Vote, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { pastCrises as mockPastCrises } from "@/data/mockData";
 import { NGODetails, VolunteerDetails, UserProfile } from "@/types/database";
 
-type AdminSection = "overview" | "issues" | "verification" | "analytics" | "ngos" | "volunteers" | "publics" | "alerts" | "history" | "settings";
+type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "publics" | "alerts" | "history" | "settings";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "issues", label: "Issues", icon: FileText },
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "polls", label: "Polls", icon: Vote },
+  { id: "discussions", label: "Discussions", icon: MessageSquare },
+  { id: "insights", label: "Community Insights", icon: Activity },
   { id: "ngos", label: "NGOs", icon: Building2 },
   { id: "volunteers", label: "Volunteers", icon: Users },
   { id: "publics", label: "Public Accounts", icon: User },
@@ -71,6 +80,10 @@ export default function DashboardAdmin() {
   const [volList, setVolList] = useState<Volunteer[]>([]);
   const [alertList, setAlertList] = useState<AlertType[]>([]);
   const [publicUsers, setPublicUsers] = useState<UserProfile[]>([]);
+  const [pollList, setPollList] = useState<Poll[]>(seedPolls);
+  const [commentList, setCommentList] = useState<DiscussionComment[]>(seedDiscussions);
+  const [aiWeights, setAiWeights] = useState<AIWeights>(defaultAIWeights);
+  const [insightIssueId, setInsightIssueId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
@@ -286,6 +299,20 @@ export default function DashboardAdmin() {
     if (!broadcastMsg.trim()) return;
     toast.success("🔔 Alert broadcasted", { description: broadcastMsg });
     setBroadcastMsg("");
+  };
+
+  // Polls handlers
+  const handlePollCreate = (poll: Poll) => setPollList(prev => [poll, ...prev]);
+  const handlePollToggle = (id: string) => setPollList(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+  const handlePollDelete = (id: string) => setPollList(prev => prev.filter(p => p.id !== id));
+
+  // Discussion handlers
+  const handleCommentDelete = (id: string) => setCommentList(prev => prev.filter(c => c.id !== id));
+
+  // Issue priority override
+  const handlePriorityOverride = (id: string, urgency: "High" | "Medium" | "Low") => {
+    setIssueList(prev => prev.map(i => i.id === id ? { ...i, urgency } : i));
+    toast.success(`Priority set to ${urgency}`);
   };
 
   const renderContent = () => {
@@ -761,6 +788,90 @@ export default function DashboardAdmin() {
             </div>
           </div>
         );
+
+      case "polls":
+        return (
+          <PollManagementPanel
+            polls={pollList}
+            issues={issueList}
+            onCreate={handlePollCreate}
+            onToggle={handlePollToggle}
+            onDelete={handlePollDelete}
+          />
+        );
+
+      case "discussions":
+        return (
+          <DiscussionModerationPanel
+            comments={commentList}
+            issues={issueList}
+            onDelete={handleCommentDelete}
+          />
+        );
+
+      case "insights": {
+        const focused = issueList.find(i => i.id === insightIssueId) ?? issueList[0];
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" /> Community Insights & AI Tuning
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Monitor engagement, tune AI weights, override priorities.
+              </p>
+            </div>
+
+            <CommunityInsightsPanel issues={issueList} polls={pollList} comments={commentList} />
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AIWeightControls weights={aiWeights} onChange={setAiWeights} />
+              <TrendingMonitor issues={issueList} polls={pollList} comments={commentList} />
+            </div>
+
+            {focused && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" /> AI Explanation & Priority Override
+                  </h3>
+                  <select
+                    value={focused.id}
+                    onChange={(e) => setInsightIssueId(e.target.value)}
+                    className="rounded-lg border bg-background px-3 py-1.5 text-xs"
+                  >
+                    {issueList.map(i => (
+                      <option key={i.id} value={i.id}>{i.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <AIExplanationPanel
+                  issue={focused}
+                  polls={pollList}
+                  comments={commentList}
+                  weights={aiWeights}
+                />
+                <div className="rounded-2xl border bg-card/50 p-5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Issue Priority Override</h4>
+                  <div className="flex gap-2">
+                    {(["High", "Medium", "Low"] as const).map(u => (
+                      <Button
+                        key={u}
+                        size="sm"
+                        variant={focused.urgency === u ? "default" : "outline"}
+                        onClick={() => handlePriorityOverride(focused.id, u)}
+                        className="flex-1"
+                      >
+                        {u}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        );
+      }
 
       case "history":
         return (

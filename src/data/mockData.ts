@@ -184,3 +184,66 @@ export const helplineNumbers = [
   { name: "Women Helpline", number: "1091" },
   { name: "Child Helpline", number: "1098" },
 ];
+
+// =====================================================
+// COMMUNITY INTELLIGENCE: Polls & Discussions
+// =====================================================
+
+export interface PollOption {
+  label: string;
+  votes: number;
+}
+
+export interface Poll {
+  id: string;
+  issueId: string;
+  question: string;
+  options: PollOption[];
+  active: boolean;
+  createdAt: string;
+}
+
+export interface DiscussionComment {
+  id: string;
+  issueId: string;
+  user: string;
+  text: string;
+  time: string; // ISO timestamp
+  flagged?: boolean;
+}
+
+export interface AIWeights {
+  voteWeight: number;
+  pollWeight: number;
+  discussionWeight: number;
+}
+
+export const defaultAIWeights: AIWeights = {
+  voteWeight: 0.3,
+  pollWeight: 0.4,
+  discussionWeight: 0.2,
+};
+
+export const polls: Poll[] = [
+  { id: "POLL-001", issueId: "ISS-001", question: "Is this flooding situation urgent?", active: true, createdAt: "2026-03-23T09:00:00Z",
+    options: [{ label: "Yes, urgent", votes: 142 }, { label: "Can wait", votes: 18 }] },
+  { id: "POLL-002", issueId: "ISS-004", question: "Should food relief be prioritized over shelter?", active: true, createdAt: "2026-03-23T06:00:00Z",
+    options: [{ label: "Yes", votes: 230 }, { label: "No", votes: 42 }, { label: "Both equally", votes: 88 }] },
+  { id: "POLL-003", issueId: "ISS-006", question: "Are medical supplies critically needed?", active: true, createdAt: "2026-03-22T22:00:00Z",
+    options: [{ label: "Yes", votes: 178 }, { label: "Moderate", votes: 24 }] },
+  { id: "POLL-004", issueId: "ISS-003", question: "Is water tanker frequency sufficient?", active: true, createdAt: "2026-03-22T08:00:00Z",
+    options: [{ label: "No, need more", votes: 96 }, { label: "Yes", votes: 31 }] },
+  { id: "POLL-005", issueId: "ISS-002", question: "Should the community center be rebuilt this month?", active: false, createdAt: "2026-03-22T15:00:00Z",
+    options: [{ label: "Yes", votes: 67 }, { label: "Wait next quarter", votes: 22 }] },
+];
+
+export const discussions: DiscussionComment[] = [
+  { id: "DSC-001", issueId: "ISS-001", user: "Rahul", text: "Water level rising quickly near sector 14 — need rescue boats.", time: "2026-03-23T09:10:00Z" },
+  { id: "DSC-002", issueId: "ISS-001", user: "Priya M.", text: "My elderly parents are stuck on the second floor. Please help.", time: "2026-03-23T09:25:00Z" },
+  { id: "DSC-003", issueId: "ISS-004", user: "Deepa", text: "Children at the camp haven't eaten since morning.", time: "2026-03-23T07:15:00Z" },
+  { id: "DSC-004", issueId: "ISS-004", user: "Anonymous", text: "We can donate 200 meal packets by evening. Coordinate?", time: "2026-03-23T08:00:00Z" },
+  { id: "DSC-005", issueId: "ISS-006", user: "Dr. Nisha", text: "IV fluids running out within 4 hours. URGENT.", time: "2026-03-23T05:30:00Z" },
+  { id: "DSC-006", issueId: "ISS-003", user: "Ravi K.", text: "36 hours without water. Tankers haven't reached our ward.", time: "2026-03-22T18:00:00Z" },
+  { id: "DSC-007", issueId: "ISS-002", user: "Sneha", text: "Debris cleared from footpath today, thanks volunteers!", time: "2026-03-23T11:00:00Z" },
+  { id: "DSC-008", issueId: "ISS-005", user: "Suresh", text: "Power still out in ward 8. Hospitals on backup generators.", time: "2026-03-23T10:30:00Z" },
+];
