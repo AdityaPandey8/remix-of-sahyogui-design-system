@@ -1,4 +1,6 @@
 import type { Issue, Urgency, Category } from "@/data/mockData";
+import type { Poll, DiscussionComment, AIWeights } from "@/data/mockData";
+import { defaultAIWeights } from "@/data/mockData";
 
 const urgencyValue: Record<Urgency, number> = { High: 9, Medium: 6, Low: 3 };
 
@@ -27,6 +29,68 @@ export function calcPriorityScore(issue: Issue): number {
   const raw = severity * 0.3 + population * 0.25 + urgency * 0.25 + locationRisk * 0.1 + delayImpact * 0.1;
   // Max possible raw = 9*0.3 + 10*0.25 + 9*0.25 + 10*0.1 + 10*0.1 = 2.7+2.5+2.25+1+1 = 9.45
   return Math.round(Math.min(100, (raw / 9.45) * 100));
+}
+
+/** Pull urgency signal (0-100) from a poll where the first option is the "urgent" one. */
+export function pollUrgencyPercent(poll: Poll | undefined): number {
+  if (!poll || poll.options.length === 0) return 0;
+  const total = poll.options.reduce((s, o) => s + o.votes, 0);
+  if (total === 0) return 0;
+  // Heuristic: first option assumed to represent "urgent / yes"
+  return Math.round((poll.options[0].votes / total) * 100);
+}
+
+/**
+ * Community-weighted priority. Combines AI base with votes, poll urgency %, and comment activity.
+ * Returns a 0–100 score.
+ */
+export function calcCommunityPriority(
+  issue: Issue,
+  polls: Poll[] = [],
+  comments: DiscussionComment[] = [],
+  weights: AIWeights = defaultAIWeights,
+): number {
+  const baseAI = calcPriorityScore(issue);
+  const votes = Math.min(100, issue.upvotes); // cap influence
+  const issuePoll = polls.find((p) => p.issueId === issue.id && p.active);
+  const pollSignal = pollUrgencyPercent(issuePoll);
+  const commentCount = Math.min(20, comments.filter((c) => c.issueId === issue.id).length);
+  const commentSignal = (commentCount / 20) * 100;
+
+  const score =
+    baseAI * 0.5 +
+    votes * weights.voteWeight +
+    pollSignal * weights.pollWeight +
+    commentSignal * weights.discussionWeight;
+
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
+
+export interface PriorityFactor {
+  label: string;
+  detail: string;
+  contribution: number; // 0-100 contribution
+}
+
+/** Structured explanation for the AI Explanation Panel. */
+export function explainPriority(
+  issue: Issue,
+  polls: Poll[] = [],
+  comments: DiscussionComment[] = [],
+  weights: AIWeights = defaultAIWeights,
+): { score: number; factors: PriorityFactor[] } {
+  const baseAI = calcPriorityScore(issue);
+  const issuePoll = polls.find((p) => p.issueId === issue.id && p.active);
+  const pollSignal = pollUrgencyPercent(issuePoll);
+  const commentCount = comments.filter((c) => c.issueId === issue.id).length;
+
+  const factors: PriorityFactor[] = [
+    { label: "Base AI signal", detail: `Severity, population & risk → ${baseAI}/100`, contribution: Math.round(baseAI * 0.5) },
+    { label: "Community votes", detail: `${issue.upvotes} upvotes`, contribution: Math.round(Math.min(100, issue.upvotes) * weights.voteWeight) },
+    { label: "Poll urgency", detail: issuePoll ? `${pollSignal}% voted urgent (${issuePoll.question})` : "No active poll", contribution: Math.round(pollSignal * weights.pollWeight) },
+    { label: "Discussion activity", detail: `${commentCount} comment${commentCount === 1 ? "" : "s"}`, contribution: Math.round((Math.min(20, commentCount) / 20) * 100 * weights.discussionWeight) },
+  ];
+  return { score: calcCommunityPriority(issue, polls, comments, weights), factors };
 }
 
 /**
