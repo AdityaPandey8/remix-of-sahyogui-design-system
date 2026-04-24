@@ -20,7 +20,7 @@ import { VolunteerDetailDialog } from "@/components/dashboard/VolunteerDetailDia
 import { NGODetailDialog } from "@/components/dashboard/NGODetailDialog";
 import { AlertDetailDialog } from "@/components/dashboard/AlertDetailDialog";
 import { VolunteerMatchCard } from "@/components/dashboard/VolunteerMatchCard";
-import { ActivityLog, type Activity } from "@/components/dashboard/ActivityLog";
+import { ActivityLog, type Activity as ActivityType } from "@/components/dashboard/ActivityLog";
 import { NetworkStatusWidget } from "@/components/dashboard/NetworkStatusWidget";
 import type { Notification } from "@/components/dashboard/NotificationBell";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -185,7 +185,7 @@ export default function DashboardNGO() {
 
   const currentNgo = useMemo(() => ngoList[0] || null, [ngoList]);
 
-  const [activities] = useState<Activity[]>([
+  const [activities] = useState<ActivityType[]>([
     { id: "a1", action: "Claimed issue: Flooded road near Sector 14", time: "2h ago", type: "assigned" },
     { id: "a2", action: "Volunteer Priya assigned to medical supply task", time: "3h ago", type: "assigned" },
     { id: "a3", action: "Issue resolved: Road debris blocking evacuation", time: "5h ago", type: "completed" },

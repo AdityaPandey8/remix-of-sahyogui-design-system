@@ -101,7 +101,7 @@ export default function DashboardVolunteer() {
   const { user } = useAuth();
   
   const [volDetails, setVolDetails] = useState<VolunteerDetails | null>(null);
-  const [myNgos, setMyNgos] = useState<NGODetails[]>([]);
+  const [myNgos, setMyNgos] = useState<UserProfile[]>([]);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<string[]>([]);
 
   useEffect(() => {
