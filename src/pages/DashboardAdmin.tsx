@@ -301,6 +301,20 @@ export default function DashboardAdmin() {
     setBroadcastMsg("");
   };
 
+  // Polls handlers
+  const handlePollCreate = (poll: Poll) => setPollList(prev => [poll, ...prev]);
+  const handlePollToggle = (id: string) => setPollList(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+  const handlePollDelete = (id: string) => setPollList(prev => prev.filter(p => p.id !== id));
+
+  // Discussion handlers
+  const handleCommentDelete = (id: string) => setCommentList(prev => prev.filter(c => c.id !== id));
+
+  // Issue priority override
+  const handlePriorityOverride = (id: string, urgency: "High" | "Medium" | "Low") => {
+    setIssueList(prev => prev.map(i => i.id === id ? { ...i, urgency } : i));
+    toast.success(`Priority set to ${urgency}`);
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
