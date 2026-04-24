@@ -1,5 +1,5 @@
-export type VerificationStatus = 'pending' | 'verified' | 'rejected';
-export type VolunteerType = 'basic' | 'verified' | 'ngo_verified';
+export type VerificationStatus = string; // 'pending' | 'verified' | 'rejected'
+export type VolunteerType = string; // 'basic' | 'verified' | 'ngo_verified'
 export type AppRole = 'admin' | 'ngo' | 'volunteer' | 'public';
 
 export interface UserProfile {
@@ -16,6 +16,7 @@ export interface NGODetails {
   registration_number: string;
   darpan_id: string | null;
   pan_tax_id: string;
+  ngo_type?: string | null;
   document_url: string | null;
   video_url: string | null;
   verification_status: VerificationStatus;

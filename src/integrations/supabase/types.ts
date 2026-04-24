@@ -148,6 +148,78 @@ export type Database = {
           },
         ]
       }
+      ngo_details: {
+        Row: {
+          created_at: string
+          darpan_id: string | null
+          document_url: string | null
+          id: string
+          ngo_name: string
+          ngo_type: string | null
+          pan_tax_id: string
+          registration_number: string
+          rejection_reason: string | null
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          darpan_id?: string | null
+          document_url?: string | null
+          id: string
+          ngo_name: string
+          ngo_type?: string | null
+          pan_tax_id?: string
+          registration_number: string
+          rejection_reason?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          darpan_id?: string | null
+          document_url?: string | null
+          id?: string
+          ngo_name?: string
+          ngo_type?: string | null
+          pan_tax_id?: string
+          registration_number?: string
+          rejection_reason?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      ngo_volunteer_relations: {
+        Row: {
+          created_at: string
+          id: string
+          ngo_id: string
+          volunteer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ngo_id: string
+          volunteer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          volunteer_id?: string
+        }
+        Relationships: []
+      }
       ngos: {
         Row: {
           active_issues: number
@@ -204,18 +276,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          blocked: boolean
           created_at: string | null
           email: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
+          blocked?: boolean
           created_at?: string | null
           email?: string | null
           id: string
           role?: Database["public"]["Enums"]["app_role"]
         }
         Update: {
+          blocked?: boolean
           created_at?: string | null
           email?: string | null
           id?: string
@@ -241,6 +316,93 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      volunteer_details: {
+        Row: {
+          availability: boolean
+          blocked: boolean
+          created_at: string
+          document_url: string | null
+          full_name: string
+          id: string
+          latitude: number | null
+          location_text: string | null
+          longitude: number | null
+          reliability_score: number
+          skills: string[]
+          tasks_completed: number
+          trust_score: number
+          type: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          availability?: boolean
+          blocked?: boolean
+          created_at?: string
+          document_url?: string | null
+          full_name: string
+          id: string
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          reliability_score?: number
+          skills?: string[]
+          tasks_completed?: number
+          trust_score?: number
+          type?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          availability?: boolean
+          blocked?: boolean
+          created_at?: string
+          document_url?: string | null
+          full_name?: string
+          id?: string
+          latitude?: number | null
+          location_text?: string | null
+          longitude?: number | null
+          reliability_score?: number
+          skills?: string[]
+          tasks_completed?: number
+          trust_score?: number
+          type?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      volunteer_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          ngo_id: string
+          status: string
+          updated_at: string
+          volunteer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          ngo_id: string
+          status?: string
+          updated_at?: string
+          volunteer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          ngo_id?: string
+          status?: string
+          updated_at?: string
+          volunteer_id?: string
         }
         Relationships: []
       }
