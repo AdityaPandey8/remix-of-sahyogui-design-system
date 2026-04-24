@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { type Issue, type Alert } from "@/data/mockData";
+import { type Issue, type Alert, type Poll, type DiscussionComment, polls as seedPolls, discussions as seedDiscussions } from "@/data/mockData";
 import { getIssues, getAlerts, createIssue, upvoteIssue } from "@/lib/supabase-service";
 import { IssueCard } from "@/components/IssueCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -14,13 +14,16 @@ import { type Notification } from "@/components/dashboard/NotificationBell";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { AIChatWidget } from "@/components/dashboard/AIChatWidget";
 import { NetworkStatusWidget } from "@/components/dashboard/NetworkStatusWidget";
+import { PollsSection } from "@/components/dashboard/PollsSection";
+import { DiscussionsSection } from "@/components/dashboard/DiscussionsSection";
+import { TrendingMonitor } from "@/components/dashboard/TrendingMonitor";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Siren, AlertTriangle, CheckCircle, Flame, User, Shield, ThumbsUp,
   LayoutDashboard, FileText, Bell, Map, UserCircle, Trash2, Award, Star, TrendingUp,
-  Heart, Target, Clock, Sparkles, Loader2
+  Heart, Target, Clock, Sparkles, Loader2, Vote, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -32,11 +35,13 @@ const publicNotifications: Notification[] = [
   { id: "n3", title: "Issue Resolved", message: "Road debris near Mussoorie cleared successfully.", type: "success", time: "1h ago", read: true },
 ];
 
-type Section = "home" | "issues" | "alerts" | "map" | "profile";
+type Section = "home" | "issues" | "polls" | "discussions" | "alerts" | "map" | "profile";
 
 const shellSidebarItems: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
   { label: "Home", id: "home", icon: LayoutDashboard },
   { label: "Issues", id: "issues", icon: FileText },
+  { label: "Polls", id: "polls", icon: Vote },
+  { label: "Discussions", id: "discussions", icon: MessageSquare },
   { label: "Alerts", id: "alerts", icon: Bell },
   { label: "Map", id: "map", icon: Map },
   { label: "Profile", id: "profile", icon: UserCircle },
@@ -58,6 +63,8 @@ export default function DashboardPublic() {
   const [section, setSection] = useState<Section>("home");
   const [issueList, setIssueList] = useState<Issue[]>([]);
   const [alertList, setAlertList] = useState<Alert[]>([]);
+  const [pollList, setPollList] = useState<Poll[]>(seedPolls);
+  const [commentList, setCommentList] = useState<DiscussionComment[]>(seedDiscussions);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
@@ -158,6 +165,27 @@ export default function DashboardPublic() {
     toast.success("Report deleted");
   };
 
+  const handlePollVote = (pollId: string, optionIndex: number) => {
+    setPollList(prev => prev.map(p =>
+      p.id === pollId
+        ? { ...p, options: p.options.map((o, i) => i === optionIndex ? { ...o, votes: o.votes + 1 } : o) }
+        : p
+    ));
+    toast.success("Vote recorded");
+  };
+
+  const handleAddDiscussion = (issueId: string, text: string) => {
+    const newComment: DiscussionComment = {
+      id: `DSC-${Date.now()}`,
+      issueId,
+      user: "You",
+      text,
+      time: new Date().toISOString(),
+    };
+    setCommentList(prev => [newComment, ...prev]);
+    toast.success("Comment posted");
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -178,6 +206,9 @@ export default function DashboardPublic() {
               <MetricCard icon={Flame} label={t('active_crises', 'Active Crises')} value={stats.high} delay={200} />
               <MetricCard icon={User} label={t('your_reports', 'Your Reports')} value={myReports.length} delay={300} />
             </div>
+
+            {/* Trending Issues */}
+            <TrendingMonitor issues={issueList} polls={pollList} comments={commentList} />
 
             {/* Live Alerts */}
             <div>
