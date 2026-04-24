@@ -123,7 +123,7 @@ export default function DashboardNGO() {
         .select("*, volunteer_details(*)")
         .eq("ngo_id", user.id)
         .eq("status", "pending");
-      if (requests) setJoinRequests(requests);
+      if (requests) setJoinRequests(requests as any);
     };
 
     if (section === "volunteers") {
