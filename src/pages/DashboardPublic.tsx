@@ -330,6 +330,12 @@ export default function DashboardPublic() {
           </div>
         );
 
+      case "polls":
+        return <PollsSection polls={pollList} issues={issueList} onVote={handlePollVote} />;
+
+      case "discussions":
+        return <DiscussionsSection comments={commentList} issues={issueList} onAddComment={handleAddDiscussion} />;
+
       case "profile":
         return (
           <div className="space-y-6">
