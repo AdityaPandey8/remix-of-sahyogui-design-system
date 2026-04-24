@@ -14,6 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          affected_area: string | null
+          created_at: string
+          details: string | null
+          id: string
+          message: string
+          photos: string[]
+          severity: string
+          title: string
+          type: string
+        }
+        Insert: {
+          affected_area?: string | null
+          created_at?: string
+          details?: string | null
+          id: string
+          message: string
+          photos?: string[]
+          severity?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          affected_area?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          message?: string
+          photos?: string[]
+          severity?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      issues: {
+        Row: {
+          affected_people: number
+          ai_priority_score: number
+          assigned_ngo: string | null
+          assigned_volunteers: string[]
+          category: string
+          comments: Json
+          coords: Json
+          created_at: string
+          description: string
+          id: string
+          images: string[]
+          is_ai_verified: boolean
+          is_anonymous: boolean
+          is_fake: boolean
+          location: string | null
+          location_risk: number | null
+          photos: string[]
+          reported_by: string | null
+          reporter_id: string | null
+          required_resources: string[]
+          response_time: string | null
+          severity: string | null
+          status: string
+          title: string
+          updated_at: string
+          upvotes: number
+          urgency: string
+        }
+        Insert: {
+          affected_people?: number
+          ai_priority_score?: number
+          assigned_ngo?: string | null
+          assigned_volunteers?: string[]
+          category?: string
+          comments?: Json
+          coords?: Json
+          created_at?: string
+          description: string
+          id: string
+          images?: string[]
+          is_ai_verified?: boolean
+          is_anonymous?: boolean
+          is_fake?: boolean
+          location?: string | null
+          location_risk?: number | null
+          photos?: string[]
+          reported_by?: string | null
+          reporter_id?: string | null
+          required_resources?: string[]
+          response_time?: string | null
+          severity?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          upvotes?: number
+          urgency?: string
+        }
+        Update: {
+          affected_people?: number
+          ai_priority_score?: number
+          assigned_ngo?: string | null
+          assigned_volunteers?: string[]
+          category?: string
+          comments?: Json
+          coords?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          images?: string[]
+          is_ai_verified?: boolean
+          is_anonymous?: boolean
+          is_fake?: boolean
+          location?: string | null
+          location_risk?: number | null
+          photos?: string[]
+          reported_by?: string | null
+          reporter_id?: string | null
+          required_resources?: string[]
+          response_time?: string | null
+          severity?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          upvotes?: number
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issues_assigned_ngo_fkey"
+            columns: ["assigned_ngo"]
+            isOneToOne: false
+            referencedRelation: "ngos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ngos: {
+        Row: {
+          active_issues: number
+          avg_response_time: string | null
+          blocked: boolean
+          contact_email: string | null
+          created_at: string
+          description: string | null
+          focus_area: string | null
+          id: string
+          issues_handled: number
+          location: string | null
+          name: string
+          owner_id: string | null
+          success_rate: number
+          updated_at: string
+          volunteer_ids: string[]
+        }
+        Insert: {
+          active_issues?: number
+          avg_response_time?: string | null
+          blocked?: boolean
+          contact_email?: string | null
+          created_at?: string
+          description?: string | null
+          focus_area?: string | null
+          id: string
+          issues_handled?: number
+          location?: string | null
+          name: string
+          owner_id?: string | null
+          success_rate?: number
+          updated_at?: string
+          volunteer_ids?: string[]
+        }
+        Update: {
+          active_issues?: number
+          avg_response_time?: string | null
+          blocked?: boolean
+          contact_email?: string | null
+          created_at?: string
+          description?: string | null
+          focus_area?: string | null
+          id?: string
+          issues_handled?: number
+          location?: string | null
+          name?: string
+          owner_id?: string | null
+          success_rate?: number
+          updated_at?: string
+          volunteer_ids?: string[]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -35,12 +223,94 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      volunteers: {
+        Row: {
+          assigned_tasks: string[]
+          available: boolean
+          blocked: boolean
+          coords: Json
+          created_at: string
+          id: string
+          location: string | null
+          name: string
+          phone: string | null
+          reliability_score: number
+          response_rate: number
+          skills: string[]
+          tasks_completed: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_tasks?: string[]
+          available?: boolean
+          blocked?: boolean
+          coords?: Json
+          created_at?: string
+          id: string
+          location?: string | null
+          name: string
+          phone?: string | null
+          reliability_score?: number
+          response_rate?: number
+          skills?: string[]
+          tasks_completed?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_tasks?: string[]
+          available?: boolean
+          blocked?: boolean
+          coords?: Json
+          created_at?: string
+          id?: string
+          location?: string | null
+          name?: string
+          phone?: string | null
+          reliability_score?: number
+          response_rate?: number
+          skills?: string[]
+          tasks_completed?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      increment_upvotes: { Args: { row_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "ngo" | "volunteer" | "public"
