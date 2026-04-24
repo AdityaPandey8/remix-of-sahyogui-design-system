@@ -789,6 +789,90 @@ export default function DashboardAdmin() {
           </div>
         );
 
+      case "polls":
+        return (
+          <PollManagementPanel
+            polls={pollList}
+            issues={issueList}
+            onCreate={handlePollCreate}
+            onToggle={handlePollToggle}
+            onDelete={handlePollDelete}
+          />
+        );
+
+      case "discussions":
+        return (
+          <DiscussionModerationPanel
+            comments={commentList}
+            issues={issueList}
+            onDelete={handleCommentDelete}
+          />
+        );
+
+      case "insights": {
+        const focused = issueList.find(i => i.id === insightIssueId) ?? issueList[0];
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" /> Community Insights & AI Tuning
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Monitor engagement, tune AI weights, override priorities.
+              </p>
+            </div>
+
+            <CommunityInsightsPanel issues={issueList} polls={pollList} comments={commentList} />
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AIWeightControls weights={aiWeights} onChange={setAiWeights} />
+              <TrendingMonitor issues={issueList} polls={pollList} comments={commentList} />
+            </div>
+
+            {focused && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-primary" /> AI Explanation & Priority Override
+                  </h3>
+                  <select
+                    value={focused.id}
+                    onChange={(e) => setInsightIssueId(e.target.value)}
+                    className="rounded-lg border bg-background px-3 py-1.5 text-xs"
+                  >
+                    {issueList.map(i => (
+                      <option key={i.id} value={i.id}>{i.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <AIExplanationPanel
+                  issue={focused}
+                  polls={pollList}
+                  comments={commentList}
+                  weights={aiWeights}
+                />
+                <div className="rounded-2xl border bg-card/50 p-5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Issue Priority Override</h4>
+                  <div className="flex gap-2">
+                    {(["High", "Medium", "Low"] as const).map(u => (
+                      <Button
+                        key={u}
+                        size="sm"
+                        variant={focused.urgency === u ? "default" : "outline"}
+                        onClick={() => handlePriorityOverride(focused.id, u)}
+                        className="flex-1"
+                      >
+                        {u}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        );
+      }
+
       case "history":
         return (
           <div className="space-y-6">
