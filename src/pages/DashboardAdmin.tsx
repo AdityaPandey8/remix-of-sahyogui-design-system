@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType } from "@/data/mockData";
+import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType, type Poll, type DiscussionComment, type AIWeights, polls as seedPolls, discussions as seedDiscussions, defaultAIWeights } from "@/data/mockData";
 import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, updateUserStatus } from "@/lib/supabase-service";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatWidget } from "@/components/dashboard/AIChatWidget";
@@ -22,6 +22,12 @@ import { CrisisDetailDialog } from "@/components/dashboard/CrisisDetailDialog";
 import { AlertDetailDialog } from "@/components/dashboard/AlertDetailDialog";
 import { TaskAssignDialog } from "@/components/dashboard/TaskAssignDialog";
 import { NetworkStatusWidget } from "@/components/dashboard/NetworkStatusWidget";
+import { PollManagementPanel } from "@/components/dashboard/PollManagementPanel";
+import { DiscussionModerationPanel } from "@/components/dashboard/DiscussionModerationPanel";
+import { CommunityInsightsPanel } from "@/components/dashboard/CommunityInsightsPanel";
+import { AIWeightControls } from "@/components/dashboard/AIWeightControls";
+import { TrendingMonitor } from "@/components/dashboard/TrendingMonitor";
+import { AIExplanationPanel } from "@/components/dashboard/AIExplanationPanel";
 import type { Notification } from "@/components/dashboard/NotificationBell";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UrgencyBadge } from "@/components/UrgencyBadge";
@@ -34,20 +40,23 @@ import { cn } from "@/lib/utils";
 import {
   BarChart3, Users, AlertTriangle, CheckCircle, Clock, Plus, Megaphone,
   ShieldAlert, Brain, Send, Flag, Activity, LayoutDashboard, FileText,
-  Building2, UserCheck, Bell, History, Settings, ShieldCheck, ShieldOff, Trash2, Eye, Handshake, Sparkles, Loader2, Globe, User
+  Building2, UserCheck, Bell, History, Settings, ShieldCheck, ShieldOff, Trash2, Eye, Handshake, Sparkles, Loader2, Globe, User, Vote, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { pastCrises as mockPastCrises } from "@/data/mockData";
 import { NGODetails, VolunteerDetails, UserProfile } from "@/types/database";
 
-type AdminSection = "overview" | "issues" | "verification" | "analytics" | "ngos" | "volunteers" | "publics" | "alerts" | "history" | "settings";
+type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "publics" | "alerts" | "history" | "settings";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "issues", label: "Issues", icon: FileText },
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "polls", label: "Polls", icon: Vote },
+  { id: "discussions", label: "Discussions", icon: MessageSquare },
+  { id: "insights", label: "Community Insights", icon: Activity },
   { id: "ngos", label: "NGOs", icon: Building2 },
   { id: "volunteers", label: "Volunteers", icon: Users },
   { id: "publics", label: "Public Accounts", icon: User },
@@ -71,6 +80,10 @@ export default function DashboardAdmin() {
   const [volList, setVolList] = useState<Volunteer[]>([]);
   const [alertList, setAlertList] = useState<AlertType[]>([]);
   const [publicUsers, setPublicUsers] = useState<UserProfile[]>([]);
+  const [pollList, setPollList] = useState<Poll[]>(seedPolls);
+  const [commentList, setCommentList] = useState<DiscussionComment[]>(seedDiscussions);
+  const [aiWeights, setAiWeights] = useState<AIWeights>(defaultAIWeights);
+  const [insightIssueId, setInsightIssueId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
