@@ -1,153 +1,98 @@
-# SahyogAI — Sidebar Auto-Collapse, Notification Cleanup & Auth, charts
 
-## 1. Sidebar Auto-Collapse on Section Select
+# Fix All Build Errors — Restore Smooth Preview
 
-**Edit:** `src/components/dashboard/DashboardShell.tsx`
+The build errors trace to **two root causes**:
 
-When a sidebar item is clicked, auto-collapse the sidebar (set `sidebarOpen = false`). Modify `onSectionChange` handler inside the shell to call both the parent's section change callback AND collapse the sidebar via `onSidebarToggle`. Add a new prop `autoCollapse?: boolean` (default `true`) or simply always collapse on click.
+1. **Schema mismatch** — `src/pages/Auth.tsx`, `DashboardAdmin.tsx`, `DashboardNGO.tsx` reference Supabase tables (`ngo_details`, `volunteer_details`, `ngo_volunteer_relations`, `volunteer_join_requests`) and columns (`verification_status`, `trust_score`, `ngo_type`, `ngo_id`, `volunteer_id`, etc.) that **don't exist** in the current connected Supabase project. The DB only has the simpler `ngos` / `volunteers` tables.
+2. **Duplicate import in `DashboardNGO.tsx`** — `Activity` is imported both from `lucide-react` (line 38) and from `@/components/dashboard/ActivityLog` (line 23) — TS2300 duplicate identifier.
 
-Concretely: in the sidebar button `onClick`, after calling `onSectionChange(item.id)`, also call `onSidebarToggle()` if sidebar is open. This applies to all four dashboards since they all use `DashboardShell`.
+The codebase's UI flows (NGO verification, volunteer trust scoring, NGO-volunteer team management, join requests) were designed against the richer schema. Best fix is to **create the missing tables** (matches existing UI/types) rather than rip out features.
 
-## 2. Notification System Cleanup
+---
 
-**Edit:** `src/components/dashboard/NotificationBell.tsx`
+## Step 1 — Database migration: create the missing tables
 
-- Remove the `autoToast` prop and the `useEffect` that fires `toast()` on mount
-- Notifications only appear in the bell dropdown — no random toast popups
+Add these tables via migration to match `src/types/database.ts` exactly:
 
-**Edit:** `src/components/dashboard/DashboardShell.tsx`
+### `ngo_details`
+- `id uuid PK` (references `auth.users.id`, cascades on delete)
+- `ngo_name text NOT NULL`
+- `registration_number text NOT NULL`
+- `darpan_id text`, `pan_tax_id text NOT NULL`
+- `ngo_type text DEFAULT 'Trust'`
+- `document_url text`, `video_url text`
+- `verification_status text DEFAULT 'pending'` (pending/verified/rejected)
+- `verified_at timestamptz`, `verified_by uuid`, `rejection_reason text`
+- `created_at`, `updated_at` (with `set_updated_at` trigger)
 
-- Remove `autoToast` from `DashboardShellProps` and stop passing it to `NotificationBell`
+### `volunteer_details`
+- `id uuid PK` (references `auth.users.id`)
+- `full_name text NOT NULL`, `skills text[] DEFAULT '{}'`
+- `type text DEFAULT 'basic'` (basic/verified/ngo_verified)
+- `verification_status text DEFAULT 'pending'`
+- `trust_score numeric DEFAULT 0`, `reliability_score numeric DEFAULT 0`
+- `tasks_completed int DEFAULT 0`, `availability bool DEFAULT true`, `blocked bool DEFAULT false`
+- `location_text text`, `latitude numeric`, `longitude numeric`
+- `document_url text`
+- `created_at`, `updated_at`
 
-**Edit:** All four dashboards (`DashboardAdmin.tsx`, `DashboardNGO.tsx`, `DashboardVolunteer.tsx`, `DashboardPublic.tsx`)
+### `ngo_volunteer_relations`
+- `id uuid PK DEFAULT gen_random_uuid()`
+- `ngo_id uuid NOT NULL`, `volunteer_id uuid NOT NULL`
+- `created_at`
+- UNIQUE (`ngo_id`, `volunteer_id`)
 
-- Remove the `autoToast` prop from each `DashboardShell` usage
+### `volunteer_join_requests`
+- `id uuid PK DEFAULT gen_random_uuid()`
+- `volunteer_id uuid NOT NULL`, `ngo_id uuid NOT NULL`
+- `status text DEFAULT 'pending'`, `message text`
+- `created_at`, `updated_at`
 
-## 3. Authentication with Supabase Auth
+### Add `blocked` column to `profiles`
+Code reads `profiles.blocked` (e.g. in `supabase-service.ts` and admin "block user" action). Add `blocked boolean NOT NULL DEFAULT false` to `profiles`.
 
-### 3a. Database Migration
+### RLS policies
+- `ngo_details` / `volunteer_details`: SELECT for authenticated; INSERT for self (`id = auth.uid()`); UPDATE for self OR admin (via `has_role`).
+- `ngo_volunteer_relations`: SELECT authenticated; INSERT/DELETE for the NGO owner (`ngo_id = auth.uid()`) or admin.
+- `volunteer_join_requests`: SELECT for the related volunteer or NGO or admin; INSERT for the volunteer (`volunteer_id = auth.uid()`); UPDATE for the NGO (`ngo_id = auth.uid()`) or admin.
+- `profiles.blocked`: existing UPDATE policy (`auth.uid() = id`) — extend with admin override so admins can block/unblock other users.
 
-Create a `profiles` table to store user role:
+**Note:** Schema changes require regeneration of `src/integrations/supabase/types.ts` — Lovable does this automatically after the migration runs. After that, every typed `.from('ngo_details')` / `.from('volunteer_details')` / `.from('ngo_volunteer_relations')` / `.from('volunteer_join_requests')` call resolves correctly and the TS2769 "not assignable to never" errors vanish.
 
-```sql
-create type public.app_role as enum ('admin', 'ngo', 'volunteer', 'public');
+---
 
-create table public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  role app_role not null default 'public',
-  created_at timestamptz default now()
-);
+## Step 2 — Fix `src/pages/DashboardNGO.tsx` duplicate import
 
-alter table public.profiles enable row level security;
+- Remove `Activity` from the `lucide-react` import on line 38 (it's only used as a *type* `Activity` from `@/components/dashboard/ActivityLog`, not as an icon in this file). Verified by reading lines 188–195 — only the type usage exists.
+- This resolves both TS2300 duplicate identifier errors.
 
-create policy "Users can read own profile"
-  on public.profiles for select
-  to authenticated
-  using (auth.uid() = id);
+---
 
-create policy "Users can update own profile"
-  on public.profiles for update
-  to authenticated
-  using (auth.uid() = id);
+## Step 3 — Verify the rest of the cascading errors clear
 
--- Auto-create profile on signup
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email, role)
-  values (
-    new.id,
-    new.email,
-    coalesce((new.raw_user_meta_data->>'role')::app_role, 'public')
-  );
-  return new;
-end;
-$$;
+After Steps 1 & 2:
+- `Auth.tsx` lines 133, 142 (`ngo_details` / `volunteer_details` inserts) — resolved by Step 1.
+- `DashboardAdmin.tsx` lines 96, 106, 133, 149, 163 (table queries / updates) — resolved by Step 1.
+- `DashboardAdmin.tsx` line 581 (`ngo.ngo_type`) — resolved by adding `ngo_type` column in Step 1.
+- `DashboardNGO.tsx` lines 99, 101, 104, 121–126, 134–138, 146–156 (relations and join requests) — resolved by Step 1.
+- `DashboardNGO.tsx` line 23/38 duplicate `Activity` — resolved by Step 2.
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-```
+No code changes needed in `supabase-service.ts` — its untyped client already works.
 
-### 3b. Auth Page
+---
 
-**Create:** `src/pages/Auth.tsx`
+## Step 4 — Smoke test the preview
 
-A full-screen login/signup page with:
+After regen, manually load `/`, `/auth`, and the four dashboards to confirm no runtime errors. The router fix from the previous turn is already in place, so the homepage should mount cleanly.
 
-- Toggle between Login and Sign Up modes
-- Email + password fields (any email allowed — development mode)
-- Role selector (Admin / NGO / Volunteer / Public) shown only on Sign Up
-- On sign up: pass `role` in `options.data` metadata so the trigger stores it
-- On login: fetch profile to get role, then redirect to `/dashboard/{role}`
-- Apple HIG styling consistent with the rest of the app
+---
 
-### 3c. Auth Context
+## Files Touched
 
-**Create:** `src/hooks/useAuth.tsx`
+| Action | Path |
+|---|---|
+| Migration | New tables: `ngo_details`, `volunteer_details`, `ngo_volunteer_relations`, `volunteer_join_requests` + `profiles.blocked` column + RLS + `set_updated_at` triggers |
+| Edit | `src/pages/DashboardNGO.tsx` — drop `Activity` from lucide-react import (line 38) |
+| Auto-regen | `src/integrations/supabase/types.ts` (regenerated by Supabase after migration) |
 
-A React context provider wrapping the app:
-
-- `useAuth()` hook returning `{ user, profile, loading, signOut }`
-- Uses `onAuthStateChange` listener (set up BEFORE `getSession`)
-- Fetches profile from `profiles` table after auth state resolves
-- Provides `signOut` function
-
-### 3d. Protected Route Component
-
-**Create:** `src/components/ProtectedRoute.tsx`
-
-A wrapper component that:
-
-- Shows loading spinner while auth is resolving
-- Redirects to `/auth` if not authenticated
-- Optionally checks `requiredRole` prop against user's profile role
-- Redirects to correct dashboard if role doesn't match
-
-### 3e. Route Updates
-
-**Edit:** `src/App.tsx`
-
-- Wrap routes with `AuthProvider`
-- Add `/auth` route pointing to `Auth.tsx`
-- Wrap each `/dashboard/*` route with `<ProtectedRoute requiredRole="admin">` etc.
-
-### 3f. Role Selection Flow Update
-
-**Edit:** `src/components/landing/RoleSelectionDialog.tsx`
-
-- Instead of navigating directly to dashboard, navigate to `/auth?role=admin` (or whichever role)
-- The Auth page reads the `role` query param to pre-select the role on sign up
-
-### 3g. Dashboard Logout
-
-**Edit:** `src/components/dashboard/DashboardShell.tsx`
-
-- Wire the existing LogOut button to call `signOut()` from `useAuth()`
-
-&nbsp;
-
-4. Add animated charts using Recharts to visualize AI priority score distribution and response time trends across issues
-
-## Files Summary
-
-
-| Action    | File                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------ |
-| Edit      | `src/components/dashboard/DashboardShell.tsx` — auto-collapse sidebar + remove autoToast + wire logout |
-| Edit      | `src/components/dashboard/NotificationBell.tsx` — remove autoToast                                     |
-| Edit      | `src/pages/DashboardAdmin.tsx` — remove autoToast prop                                                 |
-| Edit      | `src/pages/DashboardNGO.tsx` — remove autoToast prop                                                   |
-| Edit      | `src/pages/DashboardVolunteer.tsx` — remove autoToast prop                                             |
-| Edit      | `src/pages/DashboardPublic.tsx` — remove autoToast prop                                                |
-| Create    | `src/pages/Auth.tsx` — full-screen login/signup                                                        |
-| Create    | `src/hooks/useAuth.tsx` — auth context + hook                                                          |
-| Create    | `src/components/ProtectedRoute.tsx` — route guard                                                      |
-| Edit      | `src/App.tsx` — add AuthProvider, /auth route, protect dashboard routes                                |
-| Edit      | `src/components/landing/RoleSelectionDialog.tsx` — redirect to /auth?role=X                            |
-| Migration | Create profiles table + trigger                                                                        |
+No other files need changes — all the application code is already written against the target schema.
