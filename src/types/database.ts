@@ -16,6 +16,7 @@ export interface NGODetails {
   registration_number: string;
   darpan_id: string | null;
   pan_tax_id: string;
+  ngo_type?: string | null;
   document_url: string | null;
   video_url: string | null;
   verification_status: VerificationStatus;
