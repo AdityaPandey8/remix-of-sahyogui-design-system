@@ -35,7 +35,7 @@ import {
   BarChart3, Users, AlertTriangle, CheckCircle, Clock,
   Plus, ShieldAlert, Brain, Send, Megaphone, HandHelping,
   Trophy, UserCheck, Handshake, LayoutDashboard, FileText, Building2,
-  Bell, Eye, ShieldCheck, ShieldOff, X, Loader2, Heart, Activity, UserPlus, Globe
+  Bell, Eye, ShieldCheck, ShieldOff, X, Loader2, Heart, UserPlus, Globe, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
