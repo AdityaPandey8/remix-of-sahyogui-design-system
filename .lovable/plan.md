@@ -1,98 +1,118 @@
+# Community Intelligence Layer: Polls, Discussions & Admin Control
 
-# Fix All Build Errors — Restore Smooth Preview
-
-The build errors trace to **two root causes**:
-
-1. **Schema mismatch** — `src/pages/Auth.tsx`, `DashboardAdmin.tsx`, `DashboardNGO.tsx` reference Supabase tables (`ngo_details`, `volunteer_details`, `ngo_volunteer_relations`, `volunteer_join_requests`) and columns (`verification_status`, `trust_score`, `ngo_type`, `ngo_id`, `volunteer_id`, etc.) that **don't exist** in the current connected Supabase project. The DB only has the simpler `ngos` / `volunteers` tables.
-2. **Duplicate import in `DashboardNGO.tsx`** — `Activity` is imported both from `lucide-react` (line 38) and from `@/components/dashboard/ActivityLog` (line 23) — TS2300 duplicate identifier.
-
-The codebase's UI flows (NGO verification, volunteer trust scoring, NGO-volunteer team management, join requests) were designed against the richer schema. Best fix is to **create the missing tables** (matches existing UI/types) rather than rip out features.
+Frontend-only implementation using mock data (extending `src/data/mockData.ts`). No backend changes. Three pillars: **Upvotes**, **Polls**, **Discussions** — each independent, all surfaced in Public Dashboard sidebar and moderated from Admin Dashboard.
 
 ---
 
-## Step 1 — Database migration: create the missing tables
+## 1. Mock Data Additions (`src/data/mockData.ts`)
 
-Add these tables via migration to match `src/types/database.ts` exactly:
-
-### `ngo_details`
-- `id uuid PK` (references `auth.users.id`, cascades on delete)
-- `ngo_name text NOT NULL`
-- `registration_number text NOT NULL`
-- `darpan_id text`, `pan_tax_id text NOT NULL`
-- `ngo_type text DEFAULT 'Trust'`
-- `document_url text`, `video_url text`
-- `verification_status text DEFAULT 'pending'` (pending/verified/rejected)
-- `verified_at timestamptz`, `verified_by uuid`, `rejection_reason text`
-- `created_at`, `updated_at` (with `set_updated_at` trigger)
-
-### `volunteer_details`
-- `id uuid PK` (references `auth.users.id`)
-- `full_name text NOT NULL`, `skills text[] DEFAULT '{}'`
-- `type text DEFAULT 'basic'` (basic/verified/ngo_verified)
-- `verification_status text DEFAULT 'pending'`
-- `trust_score numeric DEFAULT 0`, `reliability_score numeric DEFAULT 0`
-- `tasks_completed int DEFAULT 0`, `availability bool DEFAULT true`, `blocked bool DEFAULT false`
-- `location_text text`, `latitude numeric`, `longitude numeric`
-- `document_url text`
-- `created_at`, `updated_at`
-
-### `ngo_volunteer_relations`
-- `id uuid PK DEFAULT gen_random_uuid()`
-- `ngo_id uuid NOT NULL`, `volunteer_id uuid NOT NULL`
-- `created_at`
-- UNIQUE (`ngo_id`, `volunteer_id`)
-
-### `volunteer_join_requests`
-- `id uuid PK DEFAULT gen_random_uuid()`
-- `volunteer_id uuid NOT NULL`, `ngo_id uuid NOT NULL`
-- `status text DEFAULT 'pending'`, `message text`
-- `created_at`, `updated_at`
-
-### Add `blocked` column to `profiles`
-Code reads `profiles.blocked` (e.g. in `supabase-service.ts` and admin "block user" action). Add `blocked boolean NOT NULL DEFAULT false` to `profiles`.
-
-### RLS policies
-- `ngo_details` / `volunteer_details`: SELECT for authenticated; INSERT for self (`id = auth.uid()`); UPDATE for self OR admin (via `has_role`).
-- `ngo_volunteer_relations`: SELECT authenticated; INSERT/DELETE for the NGO owner (`ngo_id = auth.uid()`) or admin.
-- `volunteer_join_requests`: SELECT for the related volunteer or NGO or admin; INSERT for the volunteer (`volunteer_id = auth.uid()`); UPDATE for the NGO (`ngo_id = auth.uid()`) or admin.
-- `profiles.blocked`: existing UPDATE policy (`auth.uid() = id`) — extend with admin override so admins can block/unblock other users.
-
-**Note:** Schema changes require regeneration of `src/integrations/supabase/types.ts` — Lovable does this automatically after the migration runs. After that, every typed `.from('ngo_details')` / `.from('volunteer_details')` / `.from('ngo_volunteer_relations')` / `.from('volunteer_join_requests')` call resolves correctly and the TS2769 "not assignable to never" errors vanish.
+```ts
+export interface Poll {
+  id: string;
+  issueId: string;
+  question: string;
+  options: { label: string; votes: number }[];
+  active: boolean;
+  createdAt: string;
+}
+export interface DiscussionComment {
+  id: string;
+  issueId: string;
+  user: string;
+  text: string;
+  time: string;
+  flagged?: boolean;
+}
+export interface AIWeights {
+  voteWeight: number;     // default 0.3
+  pollWeight: number;     // default 0.4
+  discussionWeight: number; // default 0.2
+}
+export const polls: Poll[] = [ /* 5–6 seeded polls linked to existing ISS-* */ ];
+export const discussions: DiscussionComment[] = [ /* 8–10 seeded comments */ ];
+export const defaultAIWeights: AIWeights = { voteWeight: 0.3, pollWeight: 0.4, discussionWeight: 0.2 };
+```
 
 ---
 
-## Step 2 — Fix `src/pages/DashboardNGO.tsx` duplicate import
+## 2. AI Priority Integration (`src/lib/ai-insights.ts`)
 
-- Remove `Activity` from the `lucide-react` import on line 38 (it's only used as a *type* `Activity` from `@/components/dashboard/ActivityLog`, not as an icon in this file). Verified by reading lines 188–195 — only the type usage exists.
-- This resolves both TS2300 duplicate identifier errors.
+Extend `calcPriorityScore(issue, polls?, comments?, weights?)`:
 
----
+```
+priorityScore = baseAI
+  + (votes * voteWeight)
+  + (pollUrgencyPct * pollWeight)
+  + (commentCount * discussionWeight)
+```
 
-## Step 3 — Verify the rest of the cascading errors clear
-
-After Steps 1 & 2:
-- `Auth.tsx` lines 133, 142 (`ngo_details` / `volunteer_details` inserts) — resolved by Step 1.
-- `DashboardAdmin.tsx` lines 96, 106, 133, 149, 163 (table queries / updates) — resolved by Step 1.
-- `DashboardAdmin.tsx` line 581 (`ngo.ngo_type`) — resolved by adding `ngo_type` column in Step 1.
-- `DashboardNGO.tsx` lines 99, 101, 104, 121–126, 134–138, 146–156 (relations and join requests) — resolved by Step 1.
-- `DashboardNGO.tsx` line 23/38 duplicate `Activity` — resolved by Step 2.
-
-No code changes needed in `supabase-service.ts` — its untyped client already works.
+Add helper `explainPriority(issue, polls, comments, weights)` returning a structured array of contributing factors for the **AI Explanation Panel**.
 
 ---
 
-## Step 4 — Smoke test the preview
+## 3. New Components
 
-After regen, manually load `/`, `/auth`, and the four dashboards to confirm no runtime errors. The router fix from the previous turn is already in place, so the homepage should mount cleanly.
-
----
-
-## Files Touched
-
-| Action | Path |
+| File | Purpose |
 |---|---|
-| Migration | New tables: `ngo_details`, `volunteer_details`, `ngo_volunteer_relations`, `volunteer_join_requests` + `profiles.blocked` column + RLS + `set_updated_at` triggers |
-| Edit | `src/pages/DashboardNGO.tsx` — drop `Activity` from lucide-react import (line 38) |
-| Auto-regen | `src/integrations/supabase/types.ts` (regenerated by Supabase after migration) |
+| `src/components/dashboard/PollCard.tsx` | Vote buttons + percentage bars + result display |
+| `src/components/dashboard/PollsSection.tsx` | Public polls list page |
+| `src/components/dashboard/DiscussionsSection.tsx` | Public flat-comment list per issue, latest-first, with input |
+| `src/components/dashboard/CommunityInsightsPanel.tsx` | Admin: votes/poll-results/comments per issue |
+| `src/components/dashboard/AIWeightControls.tsx` | Admin sliders for vote/poll/discussion weights |
+| `src/components/dashboard/PollManagementPanel.tsx` | Admin: create/disable/remove polls, view breakdown |
+| `src/components/dashboard/DiscussionModerationPanel.tsx` | Admin: view all comments, delete |
+| `src/components/dashboard/TrendingMonitor.tsx` | Top issues by engagement (votes+comments+poll activity) |
+| `src/components/dashboard/AIExplanationPanel.tsx` | "High priority because X votes, Y% urgent poll, Z comments" |
 
-No other files need changes — all the application code is already written against the target schema.
+Existing `IssueCard` and `IssueDetailDialog` already show upvotes — enhance the upvote button: highlight after click, append "N people affected" microcopy.
+
+---
+
+## 4. Public Dashboard (`src/pages/DashboardPublic.tsx`)
+
+Add two sidebar sections: **Polls** and **Discussions**. Update `Section` type and `shellSidebarItems`.
+
+Home section gains a **Trending Issues** strip (sorted by `upvotes + comments*2`).
+
+```
+Sidebar: Home | Issues | Polls | Discussions | Alerts | Map | Profile
+```
+
+State: `pollList`, `commentList` (initialized from mock, mutated locally). Handlers: `handlePollVote`, `handleAddComment`, `handleUpvote` (already exists).
+
+---
+
+## 5. Admin Dashboard (`src/pages/DashboardAdmin.tsx`)
+
+Add three sidebar sections: **Polls**, **Discussions**, **Community Insights**.
+
+- **Polls** → `PollManagementPanel` (create poll dialog linking to issue dropdown, toggle active, delete)
+- **Discussions** → `DiscussionModerationPanel` (table of all comments + delete button)
+- **Community Insights** → `CommunityInsightsPanel` + `AIWeightControls` + `TrendingMonitor` + `AIExplanationPanel` for selected issue
+- **Issue Priority Override**: small High/Medium/Low selector on each row in the existing Issues section that mutates `issue.urgency` locally
+
+---
+
+## 6. UI / UX Conventions
+
+- Reuse existing `Card`, `Button`, `Progress`, `Tabs`, `Dialog` primitives — no new dependencies.
+- Match existing Apple-HIG visual identity (rounded-2xl, subtle shadows, framer-motion fade/slide).
+- Polls: horizontal % bars with smooth width transitions on vote.
+- Discussions: flat list, no nesting, newest-first, simple input + Post button.
+- Toasts via existing `sonner` for vote/comment confirmations.
+
+---
+
+## Out of Scope
+
+- No Supabase tables, edge functions, or migrations (mock-data only per requirements).
+- No nested replies, threading, mentions, or rich text.
+- No real-time sync — local state mutations only.
+
+---
+
+## Files Created / Modified
+
+**Modified (4):** `src/data/mockData.ts`, `src/lib/ai-insights.ts`, `src/pages/DashboardPublic.tsx`, `src/pages/DashboardAdmin.tsx`, `src/components/IssueCard.tsx`, `src/components/dashboard/IssueDetailDialog.tsx`
+
+**Created (9):** PollCard, PollsSection, DiscussionsSection, CommunityInsightsPanel, AIWeightControls, PollManagementPanel, DiscussionModerationPanel, TrendingMonitor, AIExplanationPanel
