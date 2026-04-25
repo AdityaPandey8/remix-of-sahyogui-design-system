@@ -47,18 +47,31 @@ import { useTranslation } from "react-i18next";
 import { pastCrises as mockPastCrises } from "@/data/mockData";
 import { NGODetails, VolunteerDetails, UserProfile } from "@/types/database";
 
-type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "publics" | "alerts" | "history" | "settings";
+type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "teams" | "onboarding" | "moderation" | "invites" | "activity" | "publics" | "alerts" | "history" | "settings";
+
+import { NGOVerificationPanel } from "@/components/admin/NGOVerificationPanel";
+import { VolunteerManagementPanel } from "@/components/admin/VolunteerManagementPanel";
+import { NGOTeamsPanel } from "@/components/admin/NGOTeamsPanel";
+import { OnboardingInsightsPanel } from "@/components/admin/OnboardingInsightsPanel";
+import { ModerationPanel } from "@/components/admin/ModerationPanel";
+import { InviteCodesPanel } from "@/components/admin/InviteCodesPanel";
+import { ActivityMonitorPanel } from "@/components/admin/ActivityMonitorPanel";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "issues", label: "Issues", icon: FileText },
   { id: "verification", label: "Verification", icon: ShieldCheck },
+  { id: "onboarding", label: "Onboarding", icon: Sparkles },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "polls", label: "Polls", icon: Vote },
   { id: "discussions", label: "Discussions", icon: MessageSquare },
   { id: "insights", label: "Community Insights", icon: Activity },
   { id: "ngos", label: "NGOs", icon: Building2 },
   { id: "volunteers", label: "Volunteers", icon: Users },
+  { id: "teams", label: "NGO Teams", icon: Handshake },
+  { id: "invites", label: "Invite Codes", icon: UserCheck },
+  { id: "moderation", label: "Moderation", icon: ShieldOff },
+  { id: "activity", label: "Activity", icon: Activity },
   { id: "publics", label: "Public Accounts", icon: User },
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "history", label: "History", icon: History },
