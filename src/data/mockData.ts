@@ -186,6 +186,21 @@ export const helplineNumbers = [
 ];
 
 // =====================================================
+// INVITE CODES (mock fallback for demo when DB unavailable)
+// =====================================================
+export interface InviteCodeMock {
+  code: string;
+  ngoId: string;
+  ngoName: string;
+  active: boolean;
+}
+export const mockInviteCodes: InviteCodeMock[] = [
+  { code: "HELP2026", ngoId: "NGO-001", ngoName: "HelpBridge Foundation", active: true },
+  { code: "GREEN2026", ngoId: "NGO-002", ngoName: "GreenHands Trust", active: true },
+  { code: "CARE2026", ngoId: "NGO-003", ngoName: "CareLine Initiative", active: true },
+];
+
+// =====================================================
 // COMMUNITY INTELLIGENCE: Polls & Discussions
 // =====================================================
 
