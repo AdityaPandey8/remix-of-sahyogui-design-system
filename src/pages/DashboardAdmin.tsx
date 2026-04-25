@@ -419,6 +419,18 @@ export default function DashboardAdmin() {
         );
 
       case "verification":
+        return <NGOVerificationPanel />;
+      case "onboarding":
+        return <OnboardingInsightsPanel />;
+      case "teams":
+        return <NGOTeamsPanel />;
+      case "moderation":
+        return <ModerationPanel />;
+      case "invites":
+        return <InviteCodesPanel />;
+      case "activity":
+        return <ActivityMonitorPanel />;
+      case "verification_legacy_unused":
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <h2 className="text-xl font-bold tracking-tight flex items-center gap-2.5">
