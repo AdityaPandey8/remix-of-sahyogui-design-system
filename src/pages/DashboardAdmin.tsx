@@ -430,7 +430,7 @@ export default function DashboardAdmin() {
         return <InviteCodesPanel />;
       case "activity":
         return <ActivityMonitorPanel />;
-      case "verification_legacy_unused":
+      case "settings" + "_unused" as any:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <h2 className="text-xl font-bold tracking-tight flex items-center gap-2.5">
