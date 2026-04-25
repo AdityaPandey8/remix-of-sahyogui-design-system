@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AppRole } from "@/hooks/useAuth";
+import { NGOSignupWizard } from "@/components/auth/NGOSignupWizard";
+import { VolunteerSignupWizard } from "@/components/auth/VolunteerSignupWizard";
 
 const roles: { key: AppRole; label: string; icon: LucideIcon; desc: string; color: string }[] = [
   { key: "admin", label: "Admin", icon: Shield, desc: "Oversee the platform", color: "text-primary bg-primary/10 border-primary/20" },
@@ -286,6 +288,16 @@ export default function Auth() {
                 )}
               </div>
 
+              {/* Multi-step wizards for NGO / Volunteer signup */}
+              {mode === "signup" && selectedRole === "ngo" && (
+                <NGOSignupWizard onCancel={() => setStep(2)} />
+              )}
+              {mode === "signup" && selectedRole === "volunteer" && (
+                <VolunteerSignupWizard onCancel={() => setStep(2)} />
+              )}
+
+              {/* Default form for login + admin/public signup */}
+              {!(mode === "signup" && (selectedRole === "ngo" || selectedRole === "volunteer")) && (
               <div className="bg-card border border-border/50 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl shadow-primary/5 max-h-[70vh] overflow-y-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   
@@ -450,6 +462,7 @@ export default function Auth() {
                   </div>
                 </form>
               </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
