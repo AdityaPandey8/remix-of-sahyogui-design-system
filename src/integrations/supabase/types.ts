@@ -150,52 +150,115 @@ export type Database = {
       }
       ngo_details: {
         Row: {
+          address: string | null
+          areas_of_work: string[]
+          available_resources: string[]
+          city: string | null
           created_at: string
           darpan_id: string | null
           document_url: string | null
+          est_year: number | null
           id: string
+          is_flagged: boolean
           ngo_name: string
           ngo_type: string | null
           pan_tax_id: string
+          phone: string | null
+          primary_contact: string | null
+          regions_served: string[]
           registration_number: string
           rejection_reason: string | null
+          state: string | null
           updated_at: string
           verification_status: string
           verified_at: string | null
           verified_by: string | null
           video_url: string | null
+          volunteer_count: number | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          areas_of_work?: string[]
+          available_resources?: string[]
+          city?: string | null
           created_at?: string
           darpan_id?: string | null
           document_url?: string | null
+          est_year?: number | null
           id: string
+          is_flagged?: boolean
           ngo_name: string
           ngo_type?: string | null
           pan_tax_id?: string
+          phone?: string | null
+          primary_contact?: string | null
+          regions_served?: string[]
           registration_number: string
           rejection_reason?: string | null
+          state?: string | null
           updated_at?: string
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
           video_url?: string | null
+          volunteer_count?: number | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          areas_of_work?: string[]
+          available_resources?: string[]
+          city?: string | null
           created_at?: string
           darpan_id?: string | null
           document_url?: string | null
+          est_year?: number | null
           id?: string
+          is_flagged?: boolean
           ngo_name?: string
           ngo_type?: string | null
           pan_tax_id?: string
+          phone?: string | null
+          primary_contact?: string | null
+          regions_served?: string[]
           registration_number?: string
           rejection_reason?: string | null
+          state?: string | null
           updated_at?: string
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
           video_url?: string | null
+          volunteer_count?: number | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      ngo_invite_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          id: string
+          ngo_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          ngo_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          ngo_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -323,13 +386,18 @@ export type Database = {
         Row: {
           availability: boolean
           blocked: boolean
+          certifications: string | null
+          city: string | null
           created_at: string
           document_url: string | null
+          experience: string | null
           full_name: string
           id: string
+          invite_code_used: string | null
           latitude: number | null
           location_text: string | null
           longitude: number | null
+          phone: string | null
           reliability_score: number
           skills: string[]
           tasks_completed: number
@@ -341,13 +409,18 @@ export type Database = {
         Insert: {
           availability?: boolean
           blocked?: boolean
+          certifications?: string | null
+          city?: string | null
           created_at?: string
           document_url?: string | null
+          experience?: string | null
           full_name: string
           id: string
+          invite_code_used?: string | null
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          phone?: string | null
           reliability_score?: number
           skills?: string[]
           tasks_completed?: number
@@ -359,13 +432,18 @@ export type Database = {
         Update: {
           availability?: boolean
           blocked?: boolean
+          certifications?: string | null
+          city?: string | null
           created_at?: string
           document_url?: string | null
+          experience?: string | null
           full_name?: string
           id?: string
+          invite_code_used?: string | null
           latitude?: number | null
           location_text?: string | null
           longitude?: number | null
+          phone?: string | null
           reliability_score?: number
           skills?: string[]
           tasks_completed?: number
