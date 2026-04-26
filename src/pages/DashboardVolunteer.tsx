@@ -812,7 +812,7 @@ export default function DashboardVolunteer() {
         sidebarOpen={sidebarOpen}
         onSidebarToggle={() => setSidebarOpen(p => !p)}
         notifications={volNotifications}
-        
+        crisisMode={crisisMode}
         headerExtra={
           <Button variant="destructive" size="sm" className="gap-1.5 animate-pulse hover:animate-none active:scale-95" onClick={handleEmergencyJoin}>
             <Zap className="h-3.5 w-3.5" /> Join Emergency
