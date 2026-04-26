@@ -47,7 +47,7 @@ import { useTranslation } from "react-i18next";
 import { pastCrises as mockPastCrises } from "@/data/mockData";
 import { NGODetails, VolunteerDetails, UserProfile } from "@/types/database";
 
-type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "teams" | "onboarding" | "moderation" | "invites" | "activity" | "publics" | "alerts" | "history" | "settings";
+type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "teams" | "onboarding" | "moderation" | "invites" | "activity" | "publics" | "alerts" | "history" | "settings" | "crisis";
 
 import { NGOVerificationPanel } from "@/components/admin/NGOVerificationPanel";
 import { VolunteerManagementPanel } from "@/components/admin/VolunteerManagementPanel";
@@ -56,10 +56,15 @@ import { OnboardingInsightsPanel } from "@/components/admin/OnboardingInsightsPa
 import { ModerationPanel } from "@/components/admin/ModerationPanel";
 import { InviteCodesPanel } from "@/components/admin/InviteCodesPanel";
 import { ActivityMonitorPanel } from "@/components/admin/ActivityMonitorPanel";
+import { useCrisis, useAutoCrisis } from "@/contexts/CrisisContext";
+import { CrisisCenter } from "@/components/crisis/CrisisCenter";
+import { CrisisActivationDialog } from "@/components/crisis/CrisisActivationDialog";
+import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "issues", label: "Issues", icon: FileText },
+  { id: "crisis", label: "Crisis Center", icon: ShieldAlert },
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "onboarding", label: "Onboarding", icon: Sparkles },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -111,10 +116,13 @@ export default function DashboardAdmin() {
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [assignIssue, setAssignIssue] = useState<Issue | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [crisisMode, setCrisisMode] = useState(false);
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false);
+  const { crisisMode, deactivateCrisis } = useCrisis();
   const [pendingNgos, setPendingNgos] = useState<NGODetails[]>([]);
   const [pendingVols, setPendingVols] = useState<VolunteerDetails[]>([]);
   const [globalVols, setGlobalVols] = useState<VolunteerDetails[]>([]);
+
+  useAutoCrisis(issueList);
 
   useEffect(() => {
     const fetchNgos = async () => {
@@ -345,7 +353,7 @@ export default function DashboardAdmin() {
             
             <QuickActionBar actions={[
               { label: "Add Issue", icon: Plus, onClick: () => setReportOpen(true) },
-              { label: crisisMode ? "Deactivate Crisis" : "Activate Crisis", icon: ShieldAlert, onClick: () => { setCrisisMode(!crisisMode); toast(crisisMode ? "Crisis mode deactivated" : "🚨 Crisis mode activated!"); }, variant: crisisMode ? "destructive" : "outline" },
+              { label: crisisMode ? "Deactivate Crisis" : "Activate Crisis", icon: ShieldAlert, onClick: () => { if (crisisMode) { deactivateCrisis(); } else { setActivationDialogOpen(true); } }, variant: crisisMode ? "destructive" : "outline" },
             ]} />
             
             <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
@@ -420,6 +428,8 @@ export default function DashboardAdmin() {
 
       case "verification":
         return <NGOVerificationPanel />;
+      case "crisis":
+        return <CrisisCenter />;
       case "onboarding":
         return <OnboardingInsightsPanel />;
       case "teams":
@@ -980,6 +990,7 @@ export default function DashboardAdmin() {
       <CrisisDetailDialog crisis={selectedCrisis} open={!!selectedCrisis} onOpenChange={(open) => !open && setSelectedCrisis(null)} />
       <AlertDetailDialog alert={selectedAlert} open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)} />
       <TaskAssignDialog issue={assignIssue} open={!!assignIssue} onOpenChange={(open) => !open && setAssignIssue(null)} />
+      <CrisisActivationDialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen} issues={issueList} />
       <AIChatWidget />
     </DashboardShell>
   );

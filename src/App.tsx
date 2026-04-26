@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CrisisProvider } from "@/contexts/CrisisContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -28,7 +29,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AuthProvider>
-            <Routes>
+            <CrisisProvider>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard/admin" element={<ProtectedRoute requiredRole="admin"><DashboardAdmin /></ProtectedRoute>} />
@@ -40,7 +42,8 @@ const App = () => (
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/data-protection" element={<DataProtection />} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </CrisisProvider>
           </AuthProvider>
         </TooltipProvider>
       </BrowserRouter>

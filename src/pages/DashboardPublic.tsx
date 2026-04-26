@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useCrisis } from "@/contexts/CrisisContext";
+import { PublicCrisisBanner } from "@/components/crisis/CrisisBanners";
 
 const publicNotifications: Notification[] = [
   { id: "n1", title: "Flood Warning", message: "Heavy rainfall expected in Bihar. Stay safe.", type: "danger", time: "5m ago", read: false },
@@ -74,6 +76,7 @@ export default function DashboardPublic() {
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const { crisisMode } = useCrisis();
 
   useEffect(() => {
     const loadData = async () => {
@@ -199,6 +202,7 @@ export default function DashboardPublic() {
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <NetworkStatusWidget />
+            <PublicCrisisBanner />
             
             <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
               <MetricCard icon={AlertTriangle} label={t('total_issues', 'Total Issues')} value={stats.total} trend={{ direction: "up", value: "+3" }} delay={0} />
@@ -481,7 +485,7 @@ export default function DashboardPublic() {
         sidebarOpen={sidebarOpen}
         onSidebarToggle={() => setSidebarOpen(p => !p)}
         notifications={publicNotifications}
-        
+        crisisMode={crisisMode}
       >
         {renderContent()}
       </DashboardShell>
