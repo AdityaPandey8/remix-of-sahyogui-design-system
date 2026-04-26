@@ -116,7 +116,8 @@ export default function DashboardAdmin() {
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [assignIssue, setAssignIssue] = useState<Issue | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [crisisMode, setCrisisMode] = useState(false);
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false);
+  const { crisisMode, deactivateCrisis } = useCrisis();
   const [pendingNgos, setPendingNgos] = useState<NGODetails[]>([]);
   const [pendingVols, setPendingVols] = useState<VolunteerDetails[]>([]);
   const [globalVols, setGlobalVols] = useState<VolunteerDetails[]>([]);
