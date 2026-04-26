@@ -296,11 +296,14 @@ export default function DashboardNGO() {
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <NetworkStatusWidget />
-            
-            <QuickActionBar actions={[
-              { label: "Report Issue", icon: Plus, onClick: () => setReportOpen(true) },
-              { label: crisisMode ? "Deactivate Crisis" : "Crisis Mode", icon: ShieldAlert, onClick: () => { setCrisisMode(!crisisMode); toast(crisisMode ? "Crisis mode off" : "🚨 Crisis mode activated!"); }, variant: crisisMode ? "destructive" : "outline" },
-            ]} />
+            <NGOCrisisBanner />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <QuickActionBar actions={[
+                { label: "Report Issue", icon: Plus, onClick: () => setReportOpen(true) },
+              ]} />
+              <CrisisRequestButton issues={issueList} ngoName={currentNgo?.name || "NGO"} />
+            </div>
             
             <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
               <MetricCard icon={BarChart3} label={t('assigned', 'Assigned')} value={stats.assigned} delay={0} />
