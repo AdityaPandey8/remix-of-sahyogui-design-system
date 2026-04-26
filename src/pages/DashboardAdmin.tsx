@@ -426,6 +426,8 @@ export default function DashboardAdmin() {
 
       case "verification":
         return <NGOVerificationPanel />;
+      case "crisis":
+        return <CrisisCenter />;
       case "onboarding":
         return <OnboardingInsightsPanel />;
       case "teams":
