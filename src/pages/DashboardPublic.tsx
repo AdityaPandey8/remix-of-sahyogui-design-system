@@ -485,7 +485,7 @@ export default function DashboardPublic() {
         sidebarOpen={sidebarOpen}
         onSidebarToggle={() => setSidebarOpen(p => !p)}
         notifications={publicNotifications}
-        
+        crisisMode={crisisMode}
       >
         {renderContent()}
       </DashboardShell>
