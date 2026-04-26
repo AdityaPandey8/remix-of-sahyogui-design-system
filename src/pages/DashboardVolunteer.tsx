@@ -21,6 +21,8 @@ import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
 import { NetworkStatusWidget } from "@/components/dashboard/NetworkStatusWidget";
 import { TaskMarketplace } from "@/components/dashboard/TaskMarketplace";
 import { SafetyGuides } from "@/components/dashboard/SafetyGuides";
+import { useCrisis } from "@/contexts/CrisisContext";
+import { VolunteerCrisisBanner } from "@/components/crisis/CrisisBanners";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UrgencyBadge } from "@/components/UrgencyBadge";
 import { Progress } from "@/components/ui/progress";
@@ -337,6 +339,7 @@ export default function DashboardVolunteer() {
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <NetworkStatusWidget />
+            <VolunteerCrisisBanner onJoin={handleEmergencyJoin} />
 
             <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
               <MetricCard icon={BarChart3} label={t('assigned', 'Assigned')} value={stats.assigned} delay={0} />
