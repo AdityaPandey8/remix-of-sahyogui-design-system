@@ -105,6 +105,7 @@ export default function DashboardVolunteer() {
   const [volDetails, setVolDetails] = useState<VolunteerDetails | null>(null);
   const [myNgos, setMyNgos] = useState<UserProfile[]>([]);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<string[]>([]);
+  const { crisisMode } = useCrisis();
 
   useEffect(() => {
     const fetchVolData = async () => {
