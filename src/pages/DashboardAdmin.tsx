@@ -56,6 +56,10 @@ import { OnboardingInsightsPanel } from "@/components/admin/OnboardingInsightsPa
 import { ModerationPanel } from "@/components/admin/ModerationPanel";
 import { InviteCodesPanel } from "@/components/admin/InviteCodesPanel";
 import { ActivityMonitorPanel } from "@/components/admin/ActivityMonitorPanel";
+import { useCrisis, useAutoCrisis } from "@/contexts/CrisisContext";
+import { CrisisCenter } from "@/components/crisis/CrisisCenter";
+import { CrisisActivationDialog } from "@/components/crisis/CrisisActivationDialog";
+import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
