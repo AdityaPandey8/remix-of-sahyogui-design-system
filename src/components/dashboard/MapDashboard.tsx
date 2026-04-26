@@ -404,8 +404,41 @@ export function MapDashboard({
                   key={issue.id}
                   issue={issue}
                   onClick={handleIssueClick}
+                  isActiveCrisis={crisisMode && activeIssue?.id === issue.id}
                 />
               ))}
+              {crisisMode && activeIssue && (
+                <Circle
+                  center={getLatLng(activeIssue.coords)}
+                  radius={120000}
+                  pathOptions={{ color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.08, weight: 2 }}
+                />
+              )}
+              {crisisMode && broadcast?.services.map((svc) => {
+                const color = svc.type === 'fire' ? '#dc2626' : svc.type === 'police' ? '#2563eb' : '#16a34a';
+                const svcIcon = new Icon({
+                  iconUrl: `data:image/svg+xml;base64,${btoa(`
+                    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="14" cy="14" r="12" fill="white" stroke="${color}" stroke-width="3"/>
+                      <text x="14" y="18" text-anchor="middle" font-size="13">${serviceTypeEmoji[svc.type]}</text>
+                    </svg>
+                  `)}`,
+                  iconSize: [28, 28],
+                  iconAnchor: [14, 28],
+                  popupAnchor: [0, -28],
+                });
+                return (
+                  <Marker key={svc.id} position={[svc.lat, svc.lng]} icon={svcIcon}>
+                    <Popup>
+                      <div className="p-1 min-w-[160px]">
+                        <p className="text-sm font-bold">{serviceTypeEmoji[svc.type]} {svc.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{serviceTypeLabel[svc.type]} · {svc.city}</p>
+                        <p className="text-[10px] mt-1">📞 {svc.phone}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
             </MapContainer>
 
             {/* Map Legend */}
