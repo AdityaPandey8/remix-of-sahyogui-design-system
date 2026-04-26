@@ -59,6 +59,9 @@ const ngoNotifications: Notification[] = [
 ];
 
 import { VolunteerDetails, VolunteerJoinRequest } from "@/types/database";
+import { useCrisis } from "@/contexts/CrisisContext";
+import { CrisisRequestButton } from "@/components/crisis/CrisisRequestButton";
+import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
 
 // ... (existing imports)
 
@@ -83,7 +86,7 @@ export default function DashboardNGO() {
   const [selectedNgo, setSelectedNgo] = useState<NGO | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<AlertType | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [crisisMode, setCrisisMode] = useState(false);
+  const { crisisMode } = useCrisis();
   const { user } = useAuth();
   
   const [myVols, setMyVols] = useState<VolunteerDetails[]>([]);
