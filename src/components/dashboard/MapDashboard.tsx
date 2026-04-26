@@ -417,10 +417,10 @@ export function MapDashboard({
               {crisisMode && broadcast?.services.map((svc) => {
                 const color = svc.type === 'fire' ? '#dc2626' : svc.type === 'police' ? '#2563eb' : '#16a34a';
                 const svcIcon = new Icon({
-                  iconUrl: `data:image/svg+xml;base64,${btoa(`
+                  iconUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
                     <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="14" cy="14" r="12" fill="white" stroke="${color}" stroke-width="3"/>
-                      <text x="14" y="18" text-anchor="middle" font-size="13">${serviceTypeEmoji[svc.type]}</text>
+                      <text x="14" y="19" text-anchor="middle" font-size="14">${serviceTypeEmoji[svc.type]}</text>
                     </svg>
                   `)}`,
                   iconSize: [28, 28],
