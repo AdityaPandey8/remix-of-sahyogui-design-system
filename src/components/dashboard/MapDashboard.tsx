@@ -76,15 +76,16 @@ const statusColors: Record<IssueStatus, string> = {
 };
 
 // Custom marker component
-function CustomMarker({ issue, onClick }: { issue: Issue; onClick?: (issue: Issue) => void }) {
+function CustomMarker({ issue, onClick, isActiveCrisis }: { issue: Issue; onClick?: (issue: Issue) => void; isActiveCrisis?: boolean }) {
   const IconComponent = categoryIcons[issue.category] || MapPin;
 
-  const color = issue.urgency === 'High' ? '#dc2626' : issue.urgency === 'Medium' ? '#ca8a04' : '#16a34a';
+  const color = isActiveCrisis ? '#dc2626' : issue.urgency === 'High' ? '#dc2626' : issue.urgency === 'Medium' ? '#ca8a04' : '#16a34a';
+  const ring = isActiveCrisis ? 6 : 3;
 
   const customIcon = new Icon({
     iconUrl: `data:image/svg+xml;base64,${btoa(`
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="14" fill="white" stroke="${color}" stroke-width="3"/>
+        <circle cx="16" cy="16" r="14" fill="white" stroke="${color}" stroke-width="${ring}"/>
         <circle cx="16" cy="16" r="10" fill="${color}"/>
         <path d="M16 8 L20 16 L16 20 L12 16 Z" fill="white"/>
       </svg>
@@ -94,6 +95,8 @@ function CustomMarker({ issue, onClick }: { issue: Issue; onClick?: (issue: Issu
     popupAnchor: [0, -32],
   });
 
+  const crisisLink = generateCrisisLink(issue);
+
   return (
     <Marker position={getLatLng(issue.coords)} icon={customIcon} eventHandlers={{ click: () => onClick?.(issue) }}>
       <Popup>
@@ -101,6 +104,9 @@ function CustomMarker({ issue, onClick }: { issue: Issue; onClick?: (issue: Issu
           <div className="flex items-center gap-2 mb-2">
             <IconComponent className="h-4 w-4 text-primary" />
             <h3 className="font-semibold text-sm">{issue.title}</h3>
+            {isActiveCrisis && (
+              <span className="ml-auto rounded-full bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5">CRISIS</span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mb-2">{issue.description}</p>
           <div className="flex flex-wrap gap-1 mb-2">
@@ -115,6 +121,23 @@ function CustomMarker({ issue, onClick }: { issue: Issue; onClick?: (issue: Issu
             <p className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {issue.location}</p>
             <p className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(issue.createdAt).toLocaleString()}</p>
             <p className="flex items-center gap-1"><Users className="h-3 w-3" /> Volunteers: {issue.assignedVolunteers.length}</p>
+          </div>
+          <div className="flex gap-1 mt-2">
+            <a
+              href={crisisLink}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 text-center text-[10px] font-bold rounded-md border border-red-600 text-red-600 hover:bg-red-50 px-2 py-1.5"
+            >
+              📍 View Location
+            </a>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyCrisisLink(issue); }}
+              className="flex-1 text-center text-[10px] font-bold rounded-md border border-border hover:bg-muted px-2 py-1.5"
+            >
+              📋 Copy Link
+            </button>
           </div>
         </div>
       </Popup>
