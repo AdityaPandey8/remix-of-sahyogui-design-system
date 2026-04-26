@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useCrisis } from "@/contexts/CrisisContext";
+import { PublicCrisisBanner } from "@/components/crisis/CrisisBanners";
 
 const publicNotifications: Notification[] = [
   { id: "n1", title: "Flood Warning", message: "Heavy rainfall expected in Bihar. Stay safe.", type: "danger", time: "5m ago", read: false },
