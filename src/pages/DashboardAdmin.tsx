@@ -351,7 +351,7 @@ export default function DashboardAdmin() {
             
             <QuickActionBar actions={[
               { label: "Add Issue", icon: Plus, onClick: () => setReportOpen(true) },
-              { label: crisisMode ? "Deactivate Crisis" : "Activate Crisis", icon: ShieldAlert, onClick: () => { setCrisisMode(!crisisMode); toast(crisisMode ? "Crisis mode deactivated" : "🚨 Crisis mode activated!"); }, variant: crisisMode ? "destructive" : "outline" },
+              { label: crisisMode ? "Deactivate Crisis" : "Activate Crisis", icon: ShieldAlert, onClick: () => { if (crisisMode) { deactivateCrisis(); } else { setActivationDialogOpen(true); } }, variant: crisisMode ? "destructive" : "outline" },
             ]} />
             
             <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-5">
