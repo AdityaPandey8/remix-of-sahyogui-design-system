@@ -122,6 +122,8 @@ export default function DashboardAdmin() {
   const [pendingVols, setPendingVols] = useState<VolunteerDetails[]>([]);
   const [globalVols, setGlobalVols] = useState<VolunteerDetails[]>([]);
 
+  useAutoCrisis(issueList);
+
   useEffect(() => {
     const fetchNgos = async () => {
       const { data } = await supabase
