@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
 import { Icon, LatLngTuple } from "leaflet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ import {
 import "leaflet/dist/leaflet.css";
 import { type Issue, issues as mockIssues, type Urgency, type IssueStatus, type Category } from "@/data/mockData";
 import { getLatLng } from "@/lib/map-utils";
+import { useCrisis } from "@/contexts/CrisisContext";
+import { copyCrisisLink, generateCrisisLink } from "@/lib/crisis-utils";
+import { emergencyServices, serviceTypeEmoji, serviceTypeLabel } from "@/data/emergencyServices";
 
 // Fix for default markers in react-leaflet
 delete (Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
