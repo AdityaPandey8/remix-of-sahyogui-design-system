@@ -47,7 +47,7 @@ import { useTranslation } from "react-i18next";
 import { pastCrises as mockPastCrises } from "@/data/mockData";
 import { NGODetails, VolunteerDetails, UserProfile } from "@/types/database";
 
-type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "teams" | "onboarding" | "moderation" | "invites" | "activity" | "publics" | "alerts" | "history" | "settings";
+type AdminSection = "overview" | "issues" | "verification" | "analytics" | "polls" | "discussions" | "insights" | "ngos" | "volunteers" | "teams" | "onboarding" | "moderation" | "invites" | "activity" | "publics" | "alerts" | "history" | "settings" | "crisis";
 
 import { NGOVerificationPanel } from "@/components/admin/NGOVerificationPanel";
 import { VolunteerManagementPanel } from "@/components/admin/VolunteerManagementPanel";
@@ -64,6 +64,7 @@ import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "issues", label: "Issues", icon: FileText },
+  { id: "crisis", label: "Crisis Center", icon: ShieldAlert },
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "onboarding", label: "Onboarding", icon: Sparkles },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
