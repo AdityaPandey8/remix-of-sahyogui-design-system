@@ -162,6 +162,7 @@ export function MapDashboard({
   onReportIssue,
   className
 }: MapDashboardProps) {
+  const { crisisMode, activeIssue, broadcast } = useCrisis();
   const [center, setCenter] = useState<LatLngTuple>(userLocation);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
