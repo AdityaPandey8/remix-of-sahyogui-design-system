@@ -74,6 +74,7 @@ export default function DashboardPublic() {
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const { crisisMode } = useCrisis();
 
   useEffect(() => {
     const loadData = async () => {
