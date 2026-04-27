@@ -12,3 +12,19 @@ export const getLatLng = (coords: { x: number; y: number }): LatLngTuple => {
   const lng = 68 + (coords.y / 100) * 29;
   return [lat, lng];
 };
+
+/**
+ * Build a Google Maps tracking link for an issue.
+ * Falls back to a search query when coords aren't usable.
+ */
+export const getIssueMapLink = (issue: {
+  coords?: { x: number; y: number } | null;
+  location?: string | null;
+}): string => {
+  if (issue.coords && typeof issue.coords.x === "number" && typeof issue.coords.y === "number") {
+    const [lat, lng] = getLatLng(issue.coords);
+    return `https://www.google.com/maps?q=${lat.toFixed(5)},${lng.toFixed(5)}`;
+  }
+  const q = encodeURIComponent(issue.location || "India");
+  return `https://www.google.com/maps/search/?api=1&query=${q}`;
+};

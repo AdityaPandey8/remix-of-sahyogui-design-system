@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { SearchBar } from "@/components/dashboard/SearchBar";
+import { useProfileSummary } from "@/hooks/useProfileSummary";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -77,7 +78,7 @@ export function DashboardShell<T extends string>({
   const handleSectionClick = (id: T) => {
     onSectionChange(id);
     
-    if (id === 'overview') {
+    if (id === 'overview' || id === 'home') {
       if (!sidebarOpen) {
         onSidebarToggle();
       }
@@ -87,6 +88,8 @@ export function DashboardShell<T extends string>({
       }
     }
   };
+
+  const profileSummary = useProfileSummary();
 
   return (
     <div className={cn("min-h-screen bg-background flex flex-col md:flex-row relative overflow-hidden", crisisMode && "ring-2 ring-destructive ring-inset")}>
@@ -165,28 +168,38 @@ export function DashboardShell<T extends string>({
 
         {/* User Profile Section at Bottom */}
         <div className="p-3 border-t border-border/50 bg-card/10">
-          <div className={cn(
-            "rounded-xl bg-muted/40 p-2 transition-all duration-300",
-            sidebarOpen ? "flex items-center gap-3" : "flex flex-col items-center gap-2"
-          )}>
+          <button
+            onClick={() => navigate("/profile")}
+            className={cn(
+              "w-full text-left rounded-xl bg-muted/40 p-2 transition-all duration-300 hover:bg-muted/70 hover:shadow-md group",
+              sidebarOpen ? "flex items-center gap-3" : "flex flex-col items-center gap-2"
+            )}
+            title="View profile"
+          >
             <div className="relative shrink-0">
               <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold shadow-md">
-                SA
+                {profileSummary.initials}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success" />
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs font-bold truncate text-foreground leading-tight">Admin User</p>
-                <p className="text-[10px] text-muted-foreground truncate leading-tight">admin@sahyogai.org</p>
+                <p className="text-xs font-bold truncate text-foreground leading-tight">{profileSummary.displayName}</p>
+                <p className="text-[10px] text-muted-foreground truncate leading-tight">{profileSummary.email}</p>
               </div>
             )}
             {sidebarOpen && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={handleSignOut}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={(e) => { e.stopPropagation(); handleSignOut(); }}
+                title="Sign out"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             )}
-          </div>
+          </button>
         </div>
       </aside>
 

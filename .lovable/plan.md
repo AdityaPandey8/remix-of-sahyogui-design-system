@@ -1,140 +1,104 @@
-# Crisis Activation System — Full Implementation Plan
+# Implementation Plan
 
-Bundle five related enhancements into one coordinated rollout: a global Crisis context, role-based activation, map + emergency-services intelligence, dashboard-wide UI changes, and a sidebar consistency pass.
+## 1. Public Dashboard — Collapsible Sidebar Behavior
+The Admin/NGO/Volunteer dashboards already auto-collapse on feature navigation and re-open on Home/Overview (handled in `DashboardShell.handleSectionClick`). The Public Dashboard currently uses the same shell but the behavior should be made consistent.
 
----
+- Verify `DashboardPublic.tsx` passes `sidebarOpen` + `onSidebarToggle` correctly so the shell's existing logic kicks in (auto-collapse on any non-`overview`/`home` item, re-open on `home`).
+- Update `DashboardShell.handleSectionClick` to recognize both `overview` and `home` as "expand" triggers (currently only `overview`).
+- Add a manual collapse toggle button (chevron) inside the sidebar header so the user can also toggle it explicitly.
 
-## 1. Global Crisis Context
+## 2. Forgot Password (Admin / NGO / Volunteer / Public login)
+The login form lives in `src/pages/Auth.tsx` and is shared across all roles.
 
-**New file:** `src/contexts/CrisisContext.tsx`
+- Add a "Forgot password?" link below the password field on the login form.
+- Clicking opens a small inline panel (or dialog) collecting email → calls:
+  ```ts
+  supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  ```
+- Create new public route `/reset-password` (`src/pages/ResetPassword.tsx`):
+  - Detects `type=recovery` in URL hash.
+  - Form to set + confirm new password → `supabase.auth.updateUser({ password })`.
+  - Redirects to `/auth` on success.
+- Register the route in `src/App.tsx` (outside `ProtectedRoute`).
 
-A single source of truth used by Admin/NGO/Volunteer/Public dashboards.
+## 3. Profile Card in Sidebar (all 4 dashboards)
+Currently `DashboardShell` renders a hardcoded "Admin User / admin@sahyogai.org" block at the bottom.
 
-State exposed:
-- `crisisMode: boolean`
-- `activeIssue: Issue | null`
-- `broadcast: { ngos: number; volunteers: number; services: EmergencyService[]; sentAt: string } | null`
-- `requests: CrisisRequest[]` (NGO → Admin requests)
-- `activateCrisis(issue, role)`, `deactivateCrisis()`, `requestActivation(issue, ngoName)`, `approveRequest(id)`, `rejectRequest(id)`
+- Replace hardcoded values: read the logged-in user via `useAuth()`, fetch display name from:
+  - `volunteer_details.full_name` (volunteer)
+  - `ngo_details.ngo_name` (ngo)
+  - `profiles.email` fallback for admin/public
+- Show user's name beside the logout icon. The whole row becomes a clickable button → navigates to `/profile`.
+- Logout button stays as a small icon to the right (separate click target, `stopPropagation`).
+- Create new page `src/pages/Profile.tsx` (protected route):
+  - Shows avatar (initials), name, email, role badge.
+  - Role-specific details (NGO info / volunteer skills / etc.).
+  - "Edit Profile" button — opens an inline edit form to update name, phone, city (writes to the appropriate `*_details` table or `profiles`).
+  - Sign Out button at the bottom.
 
-Persisted in `sessionStorage` so role switches keep state.
+## 4. NGO Dashboard — Volunteer Collaboration Enhancements
+Inside `DashboardNGO.tsx` Volunteers section + Communication section:
 
-`<CrisisProvider>` mounted in `src/App.tsx` around the routes.
+### Invite Codes Panel (Volunteers tab)
+- New component `src/components/ngo/InviteCodeManager.tsx`:
+  - "Generate Invite Code" button → inserts row into `ngo_invite_codes` (random 8-char code, ngo_id = current user).
+  - Lists all active codes with: copy-to-clipboard, deactivate, share button.
+  - "Send Invite" dialog: collects volunteer email, generates a shareable link `/auth?mode=signup&role=volunteer&invite=CODE`, copies to clipboard and (optionally) opens mailto draft with prefilled subject/body.
+  - Wire `VolunteerSignupWizard` to read `invite` query param and store it in `volunteer_details.invite_code_used` + auto-create `ngo_volunteer_relations` row when code matches.
 
----
+### Other-NGO Collaboration (Other NGOs tab)
+- New component `src/components/ngo/CollaborationPanel.tsx`:
+  - Cards listing other verified NGOs with focus areas.
+  - Actions per card: "Propose Joint Operation", "Share Resources", "Message".
+  - Stored locally (mock state) for now — display as a feed of outgoing/incoming proposals with status (Pending / Accepted / Declined).
+  - Filter by focus area + region.
 
-## 2. Mock Emergency Services + AI Selection
+### Broadcast to Volunteers (Communication tab)
+- Enhance current `broadcastMsg` UI:
+  - Channel selector chips: All Volunteers / My Volunteers / Crisis Responders / Specific Skill.
+  - Priority selector: Info / Urgent / Critical (color-coded).
+  - Optional location/region targeting dropdown.
+  - "Schedule for later" toggle (mock).
+  - On send: insert into `alerts` table with chosen severity + show preview card + history list of past broadcasts (session state).
+  - Live "delivered to N volunteers" estimate computed from `myVols`/`globalPool`.
 
-**New file:** `src/data/emergencyServices.ts`
-- ~12 services across India (hospital, fire, police) with `lat`, `lng`, `name`, `city`, `phone`.
+## 5. Track Issue Location (all dashboards)
+On every issue card and the issue detail dialog, add a "Track Location" button.
 
-**New file:** `src/lib/crisis-utils.ts`
-```ts
-generateCrisisLink(issue)        // google.com/maps?q=lat,lng
-getDistance(lat1,lng1,lat2,lng2) // simple Euclidean
-getRequiredServices(category)    // Health→hospital, Disaster→fire+hospital, Safety→police+hospital, Infrastructure→fire+police, default→police
-getNearbyServices(issue, radius=2.5°)
-buildAlertMessage(issue)
-copyCrisisLink(issue)            // navigator.clipboard + sonner toast
-```
-
-Reuses `coordsToLatLng` from `src/lib/map-utils.ts` so existing `coords` translate to lat/lng without changing `Issue` type.
-
----
-
-## 3. Role-Based Activation Logic
-
-| Role | UI |
-|---|---|
-| Admin | "Activate Crisis" / "Deactivate Crisis" + "Crisis Requests" inbox |
-| NGO | "Request Crisis Activation" → toast "Request sent to admin" |
-| Volunteer | No trigger. Banner "🚨 Crisis Alert Received" + "Join Emergency Now" button when active |
-| Public | No trigger. Read-only crisis banner + view location |
-
-Auto-trigger: when any issue in mock data has `aiPriorityScore > 90`, `CrisisProvider` calls `activateCrisis(issue, "system")` once and surfaces toast "⚡ Auto Crisis Activated due to high priority". Disabled after first manual deactivation in session.
-
----
-
-## 4. New Components
-
-All under `src/components/crisis/`:
-
-1. **CrisisActivationDialog.tsx** — Admin picks an issue from a list, confirms; shows resulting broadcast summary card.
-2. **CrisisBroadcastPanel.tsx** — "✅ Alerts sent to" card: counts of NGOs / Volunteers / Hospitals / Fire / Police, ETA chips, response status (Pending → Acknowledged → En Route, simulated with timers).
-3. **EmergencyServicesList.tsx** — Cards per nearby service with icon (🏥/🚒/🚓), distance badge, phone, "Notify" button.
-4. **CrisisRequestsInbox.tsx** — Admin-only. Approve / Reject pending NGO requests.
-5. **CrisisRequestButton.tsx** — NGO-side button + status badge (pending/approved/rejected).
-6. **CrisisCountdownTimer.tsx** — "Active for 02:34" since `sentAt`.
-7. **CrisisMetricsPanel.tsx** — Active responders, time since activation, issues under crisis.
-8. **VolunteerCrisisBanner.tsx** / **NGOCrisisBanner.tsx** / **PublicCrisisBanner.tsx** — Role-specific top banners with actions.
-9. **AIExplanationCard.tsx** — "AI selected responders based on issue type + proximity" with the rule used.
-
----
-
-## 5. Map Integration
-
-Edit `src/components/dashboard/MapDashboard.tsx`:
-- For each marker, popup gets:
-  - Title, urgency badge
-  - **📍 View Location** link → `generateCrisisLink(issue)` (opens Google Maps)
-  - **📋 Copy Location Link** button → `copyCrisisLink(issue)` + sonner toast "Link copied"
-  - When `crisisMode && issue.id === activeIssue.id` → red glow ring + "CRISIS" pill
-- Add overlay markers for nearby emergency services (different colored dots: red=fire, blue=police, green=hospital) when crisis is active.
-- Add a soft red CircleMarker around the active crisis issue.
+- New helper `getIssueMapLink(issue)` in `src/lib/map-utils.ts`:
+  - If `issue.coords` looks like real lat/lng → `https://www.google.com/maps?q=LAT,LNG`.
+  - Else fall back to a query search: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(issue.location)}`.
+- Add `<Button>` with `MapPin` icon labelled "Track Location" on:
+  - `IssueCard.tsx` (compact pill at the bottom row).
+  - `IssueDetailDialog.tsx` (next to location row, opens link in new tab + "Copy link" secondary action).
+- Reuses existing crisis link pattern already present in `MapDashboard`.
 
 ---
 
-## 6. Dashboard Wiring
+## Technical Notes
+- No schema changes required — all needed tables (`ngo_invite_codes`, `ngo_volunteer_relations`, `volunteer_details`, `ngo_details`, `profiles`) already exist.
+- Reset-password route must be public (registered before/outside `ProtectedRoute`).
+- `DashboardShell` becomes user-aware: lift name lookup into a small `useProfileSummary()` hook so it stays role-agnostic.
+- All new "Track Location" links open with `target="_blank" rel="noopener noreferrer"`.
+- Broadcast inserts use existing RLS policy (NGOs allowed to insert into `alerts`).
 
-**DashboardAdmin.tsx**
-- Replace existing local `crisisMode` state with `useCrisis()`.
-- Quick action "Activate Crisis" opens `CrisisActivationDialog`.
-- New sidebar section "Crisis Center" containing: `CrisisBroadcastPanel`, `EmergencyServicesList`, `CrisisMetricsPanel`, `CrisisRequestsInbox`, `AIExplanationCard`.
+## Files Created
+- `src/pages/ResetPassword.tsx`
+- `src/pages/Profile.tsx`
+- `src/components/ngo/InviteCodeManager.tsx`
+- `src/components/ngo/CollaborationPanel.tsx`
+- `src/components/auth/ForgotPasswordDialog.tsx`
+- `src/hooks/useProfileSummary.ts`
 
-**DashboardNGO.tsx**
-- Remove direct activation. Replace with `CrisisRequestButton`.
-- Show `NGOCrisisBanner` ("Emergency Request Received" + "Accept & Deploy") when `crisisMode`.
-- AI suggestions panel: when crisis → "Deploy ALL nearby volunteers + notify emergency services".
-
-**DashboardVolunteer.tsx**
-- `VolunteerCrisisBanner` at top when `crisisMode` → "🚨 Join Emergency Now" button (sets availability + toast).
-- New "Urgent Tasks" card pinned to top.
-
-**DashboardPublic.tsx**
-- Read-only `PublicCrisisBanner` with View Location link only.
-
----
-
-## 7. System-Wide UI
-
-`DashboardShell` already supports `crisisMode` banner — extend it:
-- Read `crisisMode` from `useCrisis()` automatically (remove prop drilling but keep prop as override).
-- When active: subtle red border ring (already present), red dot pulsing in header, optional reduced-motion respect.
-- Sonner toast on activation: "🚨 All nearby responders have been notified".
-
----
-
-## 8. Sidebar Smart Collapse Audit
-
-`DashboardShell.handleSectionClick` already auto-collapses on non-overview and expands on overview (desktop). Action items:
-- Verify all 4 dashboards use `overview` as the home section id (they do).
-- Add tooltip on collapsed icons (Radix `Tooltip`) showing label.
-- Keep manual toggle button visible — currently only mobile has it. Add a small chevron toggle in the sidebar footer for desktop so users can override auto-behavior.
-- Mobile: convert sidebar to Sheet drawer with overlay (currently uses bottom nav — keep bottom nav, but ensure no stale auto-collapse on mobile).
-
----
-
-## 9. Files Touched
-
-**New (~14):** CrisisContext, emergencyServices data, crisis-utils, 9 crisis components, CrisisCountdownTimer.
-
-**Edited (~7):** App.tsx, DashboardShell.tsx, MapDashboard.tsx, DashboardAdmin.tsx, DashboardNGO.tsx, DashboardVolunteer.tsx, DashboardPublic.tsx.
-
-No backend changes. No DB migrations. Pure frontend on existing mock data.
-
----
-
-## Out of Scope
-- Real SMS/push notifications
-- Real-time WebSocket broadcast (simulated with `setInterval` status updates)
-- Persisting crisis history to Supabase (session-only)
+## Files Edited
+- `src/App.tsx` (routes)
+- `src/pages/Auth.tsx` (forgot link + dialog hook)
+- `src/pages/DashboardNGO.tsx` (wire new panels)
+- `src/pages/DashboardPublic.tsx` (sidebar consistency)
+- `src/components/dashboard/DashboardShell.tsx` (profile row, home/overview toggle, manual collapse)
+- `src/components/IssueCard.tsx` (Track Location button)
+- `src/components/dashboard/IssueDetailDialog.tsx` (Track Location button)
+- `src/lib/map-utils.ts` (getIssueMapLink helper)
+- `src/components/auth/VolunteerSignupWizard.tsx` (invite param handling)
