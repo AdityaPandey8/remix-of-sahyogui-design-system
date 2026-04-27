@@ -18,6 +18,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import DataProtection from "./pages/DataProtection";
+import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +35,8 @@ const App = () => (
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/dashboard/admin" element={<ProtectedRoute requiredRole="admin"><DashboardAdmin /></ProtectedRoute>} />
               <Route path="/dashboard/ngo" element={<ProtectedRoute requiredRole="ngo"><DashboardNGO /></ProtectedRoute>} />
               <Route path="/dashboard/volunteer" element={<ProtectedRoute requiredRole="volunteer"><DashboardVolunteer /></ProtectedRoute>} />
