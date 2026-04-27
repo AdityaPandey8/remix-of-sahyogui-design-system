@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { AppRole } from "@/hooks/useAuth";
 import { NGOSignupWizard } from "@/components/auth/NGOSignupWizard";
 import { VolunteerSignupWizard } from "@/components/auth/VolunteerSignupWizard";
+import { ForgotPasswordDialog } from "@/components/auth/ForgotPasswordDialog";
 
 const roles: { key: AppRole; label: string; icon: LucideIcon; desc: string; color: string }[] = [
   { key: "admin", label: "Admin", icon: Shield, desc: "Oversee the platform", color: "text-primary bg-primary/10 border-primary/20" },
@@ -62,6 +63,7 @@ export default function Auth() {
   const [skills, setSkills] = useState<string[]>([]);
   const [experience, setExperience] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   // Auto-advance if params are present
   useEffect(() => {
@@ -350,6 +352,17 @@ export default function Auth() {
                           required
                         />
                       </div>
+                      {mode === "login" && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setForgotOpen(true)}
+                            className="text-[11px] font-bold text-primary hover:underline mt-1 mr-1"
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -471,6 +484,7 @@ export default function Auth() {
           Empowering Communities with AI Response
         </p>
       </div>
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
     </div>
   );
 }
