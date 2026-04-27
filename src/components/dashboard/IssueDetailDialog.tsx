@@ -2,13 +2,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { StatusBadge } from "@/components/StatusBadge";
 import { UrgencyBadge } from "@/components/UrgencyBadge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Clock, Users, ThumbsUp, MessageSquare, Star, Image, Trash2 } from "lucide-react";
+import { MapPin, Clock, Users, ThumbsUp, MessageSquare, Star, Image, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ngos, volunteers, type Issue } from "@/data/mockData";
 import { AIInsightsPanel } from "@/components/dashboard/AIInsightsPanel";
+import { getIssueMapLink } from "@/lib/map-utils";
+import { toast } from "sonner";
 
 interface IssueDetailDialogProps {
   issue: Issue | null;
@@ -52,6 +54,28 @@ export function IssueDetailDialog({ issue, open, onOpenChange, onUpvote, onComme
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{issue.responseTime || "Awaiting"}</span>
           <span className="flex items-center gap-1"><Users className="h-3 w-3" />{issue.affectedPeople} affected</span>
           <span className="flex items-center gap-1">Reported by: {issue.reportedBy}</span>
+        </div>
+
+        {/* Track location */}
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" className="rounded-xl gap-1.5 font-bold">
+            <a href={getIssueMapLink(issue)} target="_blank" rel="noopener noreferrer">
+              <MapPin className="h-3.5 w-3.5" /> Track Location <ExternalLink className="h-3 w-3" />
+            </a>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl gap-1.5"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(getIssueMapLink(issue));
+                toast.success("Map link copied");
+              } catch { toast.error("Copy failed"); }
+            }}
+          >
+            <Copy className="h-3.5 w-3.5" /> Copy Link
+          </Button>
         </div>
 
         {/* Photos/Videos */}

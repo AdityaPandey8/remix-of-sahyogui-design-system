@@ -1,10 +1,11 @@
-import { MapPin, ThumbsUp, MessageSquare, Brain, Activity, Heart, Shield, Droplets, AlertTriangle, HelpCircle, HardHat, Phone, Clock, Users, Building2 } from "lucide-react";
+import { MapPin, ThumbsUp, MessageSquare, Brain, Activity, Heart, Shield, Droplets, AlertTriangle, HelpCircle, HardHat, Phone, Clock, Users, Building2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Issue, Category } from "@/data/mockData";
 import { calcPriorityScore, predictResponseTime, estimateVolunteers } from "@/lib/ai-insights";
 import { StatusBadge } from "./StatusBadge";
 import { UrgencyBadge } from "./UrgencyBadge";
 import { motion } from "framer-motion";
+import { getIssueMapLink } from "@/lib/map-utils";
 
 const urgencyBorder: Record<string, string> = {
   High: "border-l-destructive",
@@ -98,6 +99,16 @@ export function IssueCard({ issue }: { issue: Issue }) {
             <MessageSquare className="h-3 w-3" />
             {issue.comments.length}
           </div>
+          <a
+            href={getIssueMapLink(issue)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+            title="Track issue location"
+          >
+            <MapPin className="h-3 w-3" /> Track <ExternalLink className="h-2.5 w-2.5" />
+          </a>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground font-medium">{timeAgo(issue.createdAt)}</span>
