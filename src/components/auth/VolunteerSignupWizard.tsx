@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const SKILLS = ["First Aid", "Medical Support", "Rescue Operations", "Logistics"
 type AffMode = "independent" | "request" | "invite";
 
 export function VolunteerSignupWizard({ onCancel }: { onCancel: () => void }) {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +41,15 @@ export function VolunteerSignupWizard({ onCancel }: { onCancel: () => void }) {
   const [selectedNgoId, setSelectedNgoId] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [inviteValid, setInviteValid] = useState<null | { ngoId: string; ngoName: string }>(null);
+
+  // Pre-fill invite code from URL (?invite=CODE) and auto-verify
+  useEffect(() => {
+    const urlInvite = searchParams.get("invite");
+    if (urlInvite) {
+      setInviteCode(urlInvite.toUpperCase());
+      setAffMode("invite");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (affMode !== "request") return;

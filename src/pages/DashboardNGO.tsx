@@ -62,6 +62,9 @@ import { VolunteerDetails, VolunteerJoinRequest } from "@/types/database";
 import { useCrisis } from "@/contexts/CrisisContext";
 import { CrisisRequestButton } from "@/components/crisis/CrisisRequestButton";
 import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
+import { InviteCodeManager } from "@/components/ngo/InviteCodeManager";
+import { CollaborationPanel } from "@/components/ngo/CollaborationPanel";
+import { BroadcastPanel } from "@/components/ngo/BroadcastPanel";
 
 // ... (existing imports)
 
@@ -446,12 +449,9 @@ export default function DashboardNGO() {
               <h2 className="text-xl font-bold tracking-tight flex items-center gap-2.5">
                 <Heart className="h-5 w-5 text-primary" /> Volunteer Coordination
               </h2>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="gap-2 rounded-xl">
-                  <UserPlus className="h-4 w-4" /> Invite by Email
-                </Button>
-              </div>
             </div>
+
+            <InviteCodeManager />
 
             <Tabs defaultValue="my-team" className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-3 rounded-xl bg-muted/50 p-1">
@@ -564,35 +564,7 @@ export default function DashboardNGO() {
 
       case "otherNgos":
         return (
-          <div className="space-y-6">
-            <h2 className="text-base font-bold flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Other NGOs</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {ngoList.filter(n => n.id !== (currentNgo?.id || '')).map(ngo => (
-                <div key={ngo.id} className="rounded-xl border bg-card p-5 transition-all hover:shadow-md">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-semibold">{ngo.name}</p>
-                      <p className="text-xs text-muted-foreground">{ngo.focusArea}</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedNgo(ngo)}>
-                      <Eye className="h-3 w-3 mr-1" />Details
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                    <div><p className="text-lg font-bold tabular-nums">{ngo.volunteerIds.length}</p><p className="text-[10px] text-muted-foreground">Volunteers</p></div>
-                    <div><p className="text-lg font-bold tabular-nums">{ngo.issuesHandled}</p><p className="text-[10px] text-muted-foreground">Handled</p></div>
-                    <div><p className={cn("text-lg font-bold tabular-nums", ngo.successRate >= 90 ? "text-success" : "text-warning")}>{ngo.successRate}%</p><p className="text-[10px] text-muted-foreground">Success</p></div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => toast.success(`Help requested from ${ngo.name}`)}>
-                      <Handshake className="h-3 w-3 mr-1" /> Request Help
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => toast.success(`Resources shared with ${ngo.name}`)}>Share Resources</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <CollaborationPanel ngos={ngoList} currentNgoId={currentNgo?.id} onOpenDetails={setSelectedNgo} />
         );
 
       case "alerts":
@@ -612,14 +584,7 @@ export default function DashboardNGO() {
       case "communication":
         return (
           <div className="space-y-6">
-            {/* Broadcast */}
-            <div>
-              <h2 className="text-base font-bold flex items-center gap-2 mb-3"><Send className="h-4 w-4 text-primary" /> Broadcast to Volunteers</h2>
-              <div className="flex gap-2">
-                <Input placeholder="Type message for all volunteers…" value={broadcastMsg} onChange={(e) => setBroadcastMsg(e.target.value)} className="h-9" />
-                <Button size="sm" onClick={handleBroadcast} className="gap-1.5 shrink-0"><Send className="h-3.5 w-3.5" /> Send</Button>
-              </div>
-            </div>
+            <BroadcastPanel myVolCount={myVols.length} globalPoolCount={globalPool.length} ngoName={currentNgo?.name} />
 
             {/* Analytics */}
             {currentNgo && (
