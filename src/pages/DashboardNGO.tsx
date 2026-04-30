@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 type NgoSection = "overview" | "issues" | "volunteers" | "otherNgos" | "alerts" | "communication";
 
@@ -166,30 +167,37 @@ export default function DashboardNGO() {
     }
   };
 
+  const reloadAll = async () => {
+    try {
+      const [issues, ngos, volunteers, alerts] = await Promise.all([
+        getIssues(),
+        getNGOs(),
+        getVolunteers(),
+        getAlerts()
+      ]);
+      setIssueList(issues);
+      setNgoList(ngos);
+      setVolList(volunteers);
+      setAlertList(alerts);
+    } catch (error) {
+      toast.error("Failed to load dashboard data");
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [issues, ngos, volunteers, alerts] = await Promise.all([
-          getIssues(),
-          getNGOs(),
-          getVolunteers(),
-          getAlerts()
-        ]);
-        setIssueList(issues);
-        setNgoList(ngos);
-        setVolList(volunteers);
-        setAlertList(alerts);
-      } catch (error) {
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    setIsLoading(true);
+    reloadAll().finally(() => setIsLoading(false));
   }, []);
 
-  const currentNgo = useMemo(() => ngoList[0] || null, [ngoList]);
+  useRealtimeTable("issues", reloadAll);
+  useRealtimeTable("alerts", reloadAll);
+  useRealtimeTable("ngo_details", reloadAll);
+  useRealtimeTable("volunteer_details", reloadAll);
+
+  const currentNgo = useMemo(
+    () => (user ? ngoList.find((n) => n.id === user.id) ?? ngoList[0] ?? null : ngoList[0] ?? null),
+    [ngoList, user]
+  );
 
   const [activities] = useState<ActivityType[]>([
     { id: "a1", action: "Claimed issue: Flooded road near Sector 14", time: "2h ago", type: "assigned" },
@@ -257,9 +265,13 @@ export default function DashboardNGO() {
   };
 
   const handleNewIssue = async (issueData: Issue) => {
-    const result = await createIssue(issueData);
+    const result = await createIssue({
+      ...issueData,
+      reporterId: user?.id ?? null,
+      assignedNgo: currentNgo?.id || null,
+    });
     if (result) {
-      setIssueList((prev) => [{ ...result, assignedNgo: currentNgo?.id || null }, ...prev]);
+      setIssueList((prev) => [result, ...prev]);
       toast.success("Issue reported");
     }
   };
