@@ -42,6 +42,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { calcPriorityScore } from "@/lib/ai-insights";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { VolunteerDetails, NGODetails, UserProfile } from "@/types/database";
 
 const volNotifications: Notification[] = [
@@ -157,28 +158,30 @@ export default function DashboardVolunteer() {
     }
   };
 
+  const reloadAll = async () => {
+    try {
+      const [issues, ngos, volunteers, alerts] = await Promise.all([
+        getIssues(),
+        getNGOs(),
+        getVolunteers(),
+        getAlerts()
+      ]);
+      setIssueList(issues);
+      setNgoList(ngos);
+      setVolList(volunteers);
+      setAlertList(alerts);
+    } catch (error) {
+      toast.error("Failed to load dashboard data");
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [issues, ngos, volunteers, alerts] = await Promise.all([
-          getIssues(),
-          getNGOs(),
-          getVolunteers(),
-          getAlerts()
-        ]);
-        setIssueList(issues);
-        setNgoList(ngos);
-        setVolList(volunteers);
-        setAlertList(alerts);
-      } catch (error) {
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    setIsLoading(true);
+    reloadAll().finally(() => setIsLoading(false));
   }, []);
+
+  useRealtimeTable("issues", reloadAll);
+  useRealtimeTable("alerts", reloadAll);
 
   const currentVol = useMemo(() => volList[0] || null, [volList]);
   const [skills, setSkills] = useState<string[]>([]);
@@ -293,7 +296,7 @@ export default function DashboardVolunteer() {
     else { toast.info("No nearby emergencies right now"); }
   };
   const handleNewIssue = async (issueData: Issue) => {
-    const result = await createIssue(issueData);
+    const result = await createIssue({ ...issueData, reporterId: user?.id ?? null });
     if (result) {
       setIssueList((prev) => [result, ...prev]);
       toast.success("Issue reported");

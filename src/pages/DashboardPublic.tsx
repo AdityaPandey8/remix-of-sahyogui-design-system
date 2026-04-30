@@ -30,6 +30,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useCrisis } from "@/contexts/CrisisContext";
 import { PublicCrisisBanner } from "@/components/crisis/CrisisBanners";
+import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 const publicNotifications: Notification[] = [
   { id: "n1", title: "Flood Warning", message: "Heavy rainfall expected in Bihar. Stay safe.", type: "danger", time: "5m ago", read: false },
@@ -77,22 +79,25 @@ export default function DashboardPublic() {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const { crisisMode } = useCrisis();
+  const { user } = useAuth();
+
+  const reload = async () => {
+    try {
+      const [issues, alerts] = await Promise.all([getIssues(), getAlerts()]);
+      setIssueList(issues);
+      setAlertList(alerts);
+    } catch (error) {
+      toast.error("Failed to load data from server");
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [issues, alerts] = await Promise.all([getIssues(), getAlerts()]);
-        setIssueList(issues);
-        setAlertList(alerts);
-      } catch (error) {
-        toast.error("Failed to load data from server");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    setIsLoading(true);
+    reload().finally(() => setIsLoading(false));
   }, []);
+
+  useRealtimeTable("issues", reload);
+  useRealtimeTable("alerts", reload);
 
   const locations = useMemo(() => [...new Set(issueList.map(i => i.location))], [issueList]);
 
@@ -121,7 +126,7 @@ export default function DashboardPublic() {
   const contributionPoints = 42 + myReports.length * 10 + totalUpvotesReceived;
 
   const handleNewIssue = async (issueData: Issue) => {
-    const result = await createIssue(issueData);
+    const result = await createIssue({ ...issueData, reporterId: user?.id ?? null });
     if (result) {
       setIssueList((prev) => [result, ...prev]);
       toast.success("Issue reported successfully!", { description: `ID: ${result.id}` });
@@ -141,7 +146,7 @@ export default function DashboardPublic() {
       assignedVolunteers: [], photos: [],
     };
     
-    const result = await createIssue(emergencyIssue);
+    const result = await createIssue({ ...emergencyIssue, reporterId: user?.id ?? null });
     if (result) {
       setIssueList((prev) => [result, ...prev]);
       toast.success("🚨 Emergency reported!", { description: "Help is on the way. Stay safe." });

@@ -1,104 +1,68 @@
-# Implementation Plan
+## Root cause
 
-## 1. Public Dashboard — Collapsible Sidebar Behavior
-The Admin/NGO/Volunteer dashboards already auto-collapse on feature navigation and re-open on Home/Overview (handled in `DashboardShell.handleSectionClick`). The Public Dashboard currently uses the same shell but the behavior should be made consistent.
+The Supabase tables `issues` and `alerts` use **snake_case** columns (`reported_by`, `assigned_ngo`, `created_at`, `ai_priority_score`, `is_anonymous`, `affected_people`, `assigned_volunteers`, `response_time`, `is_fake`, `is_ai_verified`, `location_risk`, `required_resources`), while the entire UI (Issue type, IssueCard, IssueDetailDialog, dashboards) uses **camelCase**. Result:
 
-- Verify `DashboardPublic.tsx` passes `sidebarOpen` + `onSidebarToggle` correctly so the shell's existing logic kicks in (auto-collapse on any non-`overview`/`home` item, re-open on `home`).
-- Update `DashboardShell.handleSectionClick` to recognize both `overview` and `home` as "expand" triggers (currently only `overview`).
-- Add a manual collapse toggle button (chevron) inside the sidebar header so the user can also toggle it explicitly.
+- `getIssues()` / `getAlerts()` return rows whose fields are undefined when read in the UI → looks broken.
+- `createIssue()` and the report form push camelCase keys → INSERT silently fails (or violates types) → the service catches and returns a fake local issue, so reports never persist and never appear in other dashboards.
+- DB currently has 0 issues and 0 alerts → every dashboard is showing mock fallback. NGO/Volunteer signups *do* persist (those panels read snake_case directly), so they already appear on Admin once the right panels are opened, but Admin's NGO/Volunteer count cards still read the legacy `ngos`/`volunteers` tables which are empty.
 
-## 2. Forgot Password (Admin / NGO / Volunteer / Public login)
-The login form lives in `src/pages/Auth.tsx` and is shared across all roles.
-
-- Add a "Forgot password?" link below the password field on the login form.
-- Clicking opens a small inline panel (or dialog) collecting email → calls:
-  ```ts
-  supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  ```
-- Create new public route `/reset-password` (`src/pages/ResetPassword.tsx`):
-  - Detects `type=recovery` in URL hash.
-  - Form to set + confirm new password → `supabase.auth.updateUser({ password })`.
-  - Redirects to `/auth` on success.
-- Register the route in `src/App.tsx` (outside `ProtectedRoute`).
-
-## 3. Profile Card in Sidebar (all 4 dashboards)
-Currently `DashboardShell` renders a hardcoded "Admin User / admin@sahyogai.org" block at the bottom.
-
-- Replace hardcoded values: read the logged-in user via `useAuth()`, fetch display name from:
-  - `volunteer_details.full_name` (volunteer)
-  - `ngo_details.ngo_name` (ngo)
-  - `profiles.email` fallback for admin/public
-- Show user's name beside the logout icon. The whole row becomes a clickable button → navigates to `/profile`.
-- Logout button stays as a small icon to the right (separate click target, `stopPropagation`).
-- Create new page `src/pages/Profile.tsx` (protected route):
-  - Shows avatar (initials), name, email, role badge.
-  - Role-specific details (NGO info / volunteer skills / etc.).
-  - "Edit Profile" button — opens an inline edit form to update name, phone, city (writes to the appropriate `*_details` table or `profiles`).
-  - Sign Out button at the bottom.
-
-## 4. NGO Dashboard — Volunteer Collaboration Enhancements
-Inside `DashboardNGO.tsx` Volunteers section + Communication section:
-
-### Invite Codes Panel (Volunteers tab)
-- New component `src/components/ngo/InviteCodeManager.tsx`:
-  - "Generate Invite Code" button → inserts row into `ngo_invite_codes` (random 8-char code, ngo_id = current user).
-  - Lists all active codes with: copy-to-clipboard, deactivate, share button.
-  - "Send Invite" dialog: collects volunteer email, generates a shareable link `/auth?mode=signup&role=volunteer&invite=CODE`, copies to clipboard and (optionally) opens mailto draft with prefilled subject/body.
-  - Wire `VolunteerSignupWizard` to read `invite` query param and store it in `volunteer_details.invite_code_used` + auto-create `ngo_volunteer_relations` row when code matches.
-
-### Other-NGO Collaboration (Other NGOs tab)
-- New component `src/components/ngo/CollaborationPanel.tsx`:
-  - Cards listing other verified NGOs with focus areas.
-  - Actions per card: "Propose Joint Operation", "Share Resources", "Message".
-  - Stored locally (mock state) for now — display as a feed of outgoing/incoming proposals with status (Pending / Accepted / Declined).
-  - Filter by focus area + region.
-
-### Broadcast to Volunteers (Communication tab)
-- Enhance current `broadcastMsg` UI:
-  - Channel selector chips: All Volunteers / My Volunteers / Crisis Responders / Specific Skill.
-  - Priority selector: Info / Urgent / Critical (color-coded).
-  - Optional location/region targeting dropdown.
-  - "Schedule for later" toggle (mock).
-  - On send: insert into `alerts` table with chosen severity + show preview card + history list of past broadcasts (session state).
-  - Live "delivered to N volunteers" estimate computed from `myVols`/`globalPool`.
-
-## 5. Track Issue Location (all dashboards)
-On every issue card and the issue detail dialog, add a "Track Location" button.
-
-- New helper `getIssueMapLink(issue)` in `src/lib/map-utils.ts`:
-  - If `issue.coords` looks like real lat/lng → `https://www.google.com/maps?q=LAT,LNG`.
-  - Else fall back to a query search: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(issue.location)}`.
-- Add `<Button>` with `MapPin` icon labelled "Track Location" on:
-  - `IssueCard.tsx` (compact pill at the bottom row).
-  - `IssueDetailDialog.tsx` (next to location row, opens link in new tab + "Copy link" secondary action).
-- Reuses existing crisis link pattern already present in `MapDashboard`.
+Also: no realtime subscription wired to dashboards, so even when the data is fixed a new report from a Public user wouldn't show up live on Admin/NGO/Volunteer screens until refresh.
 
 ---
 
-## Technical Notes
-- No schema changes required — all needed tables (`ngo_invite_codes`, `ngo_volunteer_relations`, `volunteer_details`, `ngo_details`, `profiles`) already exist.
-- Reset-password route must be public (registered before/outside `ProtectedRoute`).
-- `DashboardShell` becomes user-aware: lift name lookup into a small `useProfileSummary()` hook so it stays role-agnostic.
-- All new "Track Location" links open with `target="_blank" rel="noopener noreferrer"`.
-- Broadcast inserts use existing RLS policy (NGOs allowed to insert into `alerts`).
+## What to build
 
-## Files Created
-- `src/pages/ResetPassword.tsx`
-- `src/pages/Profile.tsx`
-- `src/components/ngo/InviteCodeManager.tsx`
-- `src/components/ngo/CollaborationPanel.tsx`
-- `src/components/auth/ForgotPasswordDialog.tsx`
-- `src/hooks/useProfileSummary.ts`
+### 1. Single source of truth for Issues & Alerts (camelCase ⇄ snake_case mapping)
 
-## Files Edited
-- `src/App.tsx` (routes)
-- `src/pages/Auth.tsx` (forgot link + dialog hook)
-- `src/pages/DashboardNGO.tsx` (wire new panels)
-- `src/pages/DashboardPublic.tsx` (sidebar consistency)
-- `src/components/dashboard/DashboardShell.tsx` (profile row, home/overview toggle, manual collapse)
-- `src/components/IssueCard.tsx` (Track Location button)
-- `src/components/dashboard/IssueDetailDialog.tsx` (Track Location button)
-- `src/lib/map-utils.ts` (getIssueMapLink helper)
-- `src/components/auth/VolunteerSignupWizard.tsx` (invite param handling)
+Create `src/lib/mappers.ts` with `issueFromRow / issueToRow / alertFromRow / alertToRow`. Update `src/lib/supabase-service.ts` so every read maps rows to the camelCase `Issue`/`Alert` shape and every write maps the other way. Cover: `getIssues`, `getAlerts`, `createIssue`, `updateIssueStatus`, `claimIssue`, `upvoteIssue`. Set `reporter_id = auth.uid()` on insert (RLS requires it unless `is_anonymous`). Stop returning fake local issues on error — surface the real error so reports don't silently disappear.
+
+### 2. Real reports visible everywhere
+
+With mapping fixed, the existing `getIssues()` calls in all four dashboards will return the same real rows. Add a realtime subscription via the existing `useRealtimeTable` hook in each dashboard for `issues` and `alerts`, re-running the loader on change. This guarantees that when a Public user files a report it appears live on Admin, NGO and Volunteer dashboards.
+
+### 3. Admin sees all past/present/future registrations
+
+Admin already has dedicated panels (`NGOVerificationPanel`, `VolunteerManagementPanel`, `Public Accounts`) that read `ngo_details`, `volunteer_details`, and `profiles`. Improvements:
+
+- Add a top-level "Registrations" overview showing live counts pulled from `ngo_details`, `volunteer_details`, and `profiles` (grouped by role) — not from the legacy `ngos`/`volunteers` mock tables.
+- Wire `useRealtimeTable` for `ngo_details`, `volunteer_details`, and `profiles` so new signups appear without refresh.
+- Show every NGO and every Volunteer (not only pending) with status filter (pending / verified / rejected / blocked) so historical entries are accessible.
+
+### 4. Per-dashboard data audit (small fixes only)
+
+- **Public**: already loads issues + alerts; will benefit from mapping + realtime.
+- **Volunteer**: same; also ensure "Nearby Issues" no longer crashes when `coords` arrives as JSON string from Supabase (parse defensively in mapper).
+- **NGO**: same; "Other NGOs" list should pull from `ngo_details` (verified) instead of legacy `ngos` table so NGOs see real peers AND ALSO REGISTERED VOLUNTEERS AND INVITED VOLUNTEERS OF NGO SHOULD APPEAR ON NGO DASHBOARD.
+- **Admin**: overview metric cards switch to the real tables (`issues`, `ngo_details`, `volunteer_details`, `profiles`).
+
+### 5. Cleanup / error sweep
+
+- Remove unused imports flagged across the four dashboard files.
+- `IssueReportForm` currently builds an `Issue` with a hand-rolled id; let the DB generate it. Pass payload to service, service returns the inserted row.
+- `Profile.tsx`, `ResetPassword.tsx`: keep as-is (already approved last turn) — only verify they compile after type changes.
+- Add an empty-state component when a dashboard has zero issues/alerts so the UI doesn't look broken when DB is genuinely empty.
+
+---
+
+## Technical details
+
+**Files to edit**
+
+- `src/lib/supabase-service.ts` — full rewrite of `getIssues/getAlerts/createIssue/updateIssueStatus/claimIssue/upvoteIssue` to use mapping + drop silent fake-success fallbacks.
+- `src/lib/mappers.ts` *(new)* — pure functions converting between `Issue`/`Alert` and DB rows; defensive `coords` parsing.
+- `src/pages/DashboardAdmin.tsx` — overview counts from real tables; add `useRealtimeTable("issues" | "alerts" | "ngo_details" | "volunteer_details" | "profiles", reload)`.
+- `src/pages/DashboardNGO.tsx` — realtime for `issues`/`alerts`; "Other NGOs" reads `ngo_details` where `verification_status='verified'`.
+- `src/pages/DashboardVolunteer.tsx` — realtime for `issues`/`alerts`.
+- `src/pages/DashboardPublic.tsx` — realtime for `issues`/`alerts`.
+- `src/components/dashboard/IssueReportForm.tsx` — let service assign id; pass `reporter_id` from `useAuth`.
+
+**No DB migration needed.** RLS already permits the required reads/inserts.
+
+**No business-logic redesign.** Existing UI components stay; only the data layer is corrected.
+
+**Verification steps after implementation**
+
+1. Submit an issue from Public → confirm it appears in Admin, NGO and Volunteer "Issues" lists within ~1s (realtime).
+2. Sign up a new NGO and a new Volunteer → confirm both appear in Admin's Verification + Volunteers panels without refresh.
+3. Confirm Admin overview counters reflect real DB rows, not mock seeds.
+4. Run a typecheck / build pass and clear any unused-import warnings.

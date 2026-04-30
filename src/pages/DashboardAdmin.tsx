@@ -60,6 +60,8 @@ import { useCrisis, useAutoCrisis } from "@/contexts/CrisisContext";
 import { CrisisCenter } from "@/components/crisis/CrisisCenter";
 import { CrisisActivationDialog } from "@/components/crisis/CrisisActivationDialog";
 import { NGOCrisisBanner } from "@/components/crisis/CrisisBanners";
+import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -118,6 +120,7 @@ export default function DashboardAdmin() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [activationDialogOpen, setActivationDialogOpen] = useState(false);
   const { crisisMode, deactivateCrisis } = useCrisis();
+  const { user } = useAuth();
   const [pendingNgos, setPendingNgos] = useState<NGODetails[]>([]);
   const [pendingVols, setPendingVols] = useState<VolunteerDetails[]>([]);
   const [globalVols, setGlobalVols] = useState<VolunteerDetails[]>([]);
@@ -223,28 +226,35 @@ export default function DashboardAdmin() {
     window.open(url, "_blank");
   };
 
+  const reloadCore = async () => {
+    try {
+      const [issues, ngos, volunteers, alerts, publics] = await Promise.all([
+        getIssues(),
+        getNGOs(),
+        getVolunteers(),
+        getAlerts(),
+        getPublicUsers(),
+      ]);
+      setIssueList(issues);
+      setNgoList(ngos);
+      setVolList(volunteers);
+      setAlertList(alerts);
+      setPublicUsers(publics);
+    } catch (error) {
+      toast.error("Failed to load admin dashboard data");
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [issues, ngos, volunteers, alerts] = await Promise.all([
-          getIssues(),
-          getNGOs(),
-          getVolunteers(),
-          getAlerts()
-        ]);
-        setIssueList(issues);
-        setNgoList(ngos);
-        setVolList(volunteers);
-        setAlertList(alerts);
-      } catch (error) {
-        toast.error("Failed to load admin dashboard data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    setIsLoading(true);
+    reloadCore().finally(() => setIsLoading(false));
   }, []);
+
+  useRealtimeTable("issues", reloadCore);
+  useRealtimeTable("alerts", reloadCore);
+  useRealtimeTable("ngo_details", reloadCore);
+  useRealtimeTable("volunteer_details", reloadCore);
+  useRealtimeTable("profiles", reloadCore);
 
   const locations = useMemo(() => [...new Set(issueList.map(i => i.location))], [issueList]);
   const categories = useMemo(() => [...new Set(issueList.map(i => i.category))], [issueList]);
@@ -296,7 +306,7 @@ export default function DashboardAdmin() {
     }
   };
   const handleNewIssue = async (issueData: Issue) => {
-    const result = await createIssue(issueData);
+    const result = await createIssue({ ...issueData, reporterId: user?.id ?? null });
     if (result) {
       setIssueList((prev) => [result, ...prev]);
       toast.success("Issue added");
