@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType, type Poll, type DiscussionComment, type AIWeights, polls as seedPolls, discussions as seedDiscussions, defaultAIWeights } from "@/data/mockData";
-import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, updateUserStatus } from "@/lib/supabase-service";
+import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, getAllProfiles, updateUserStatus } from "@/lib/supabase-service";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatWidget } from "@/components/dashboard/AIChatWidget";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
@@ -100,6 +100,7 @@ export default function DashboardAdmin() {
   const [volList, setVolList] = useState<Volunteer[]>([]);
   const [alertList, setAlertList] = useState<AlertType[]>([]);
   const [publicUsers, setPublicUsers] = useState<UserProfile[]>([]);
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [pollList, setPollList] = useState<Poll[]>(seedPolls);
   const [commentList, setCommentList] = useState<DiscussionComment[]>(seedDiscussions);
   const [aiWeights, setAiWeights] = useState<AIWeights>(defaultAIWeights);
@@ -151,8 +152,9 @@ export default function DashboardAdmin() {
     };
 
     const fetchPublics = async () => {
-      const users = await getPublicUsers();
-      setPublicUsers(users);
+      const [pub, all] = await Promise.all([getPublicUsers(), getAllProfiles()]);
+      setPublicUsers(pub);
+      setAllProfiles(all);
     };
 
     if (section === "verification") {
