@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,6 +37,10 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />
+              <Route path="/ngo" element={<Navigate to="/dashboard/ngo" replace />} />
+              <Route path="/volunteer" element={<Navigate to="/dashboard/volunteer" replace />} />
+              <Route path="/public" element={<Navigate to="/dashboard/public" replace />} />
               <Route path="/dashboard/admin" element={<ProtectedRoute requiredRole="admin"><DashboardAdmin /></ProtectedRoute>} />
               <Route path="/dashboard/ngo" element={<ProtectedRoute requiredRole="ngo"><DashboardNGO /></ProtectedRoute>} />
               <Route path="/dashboard/volunteer" element={<ProtectedRoute requiredRole="volunteer"><DashboardVolunteer /></ProtectedRoute>} />
