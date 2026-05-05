@@ -54,7 +54,8 @@ export const getNGOs = async (): Promise<NGO[]> => {
       return mockNgos;
     }
 
-    if (!data || data.length === 0) return mockNgos;
+    if (!data) return mockNgos;
+    if (data.length === 0) return [];
     
     return data.map((item) => ({
       id: item.id,
@@ -87,7 +88,8 @@ export const getVolunteers = async (): Promise<Volunteer[]> => {
       return mockVolunteers;
     }
 
-    if (!data || data.length === 0) return mockVolunteers;
+    if (!data) return mockVolunteers;
+    if (data.length === 0) return [];
     
     return data.map((item) => ({
       id: item.id,
@@ -122,6 +124,24 @@ export const getPublicUsers = async (): Promise<UserProfile[]> => {
     }
 
     return data as UserProfile[];
+  } catch (err) {
+    console.error("Supabase service error:", err);
+    return [];
+  }
+};
+
+/** Fetch ALL registered users (public, volunteer, ngo, admin) for admin registry. */
+export const getAllProfiles = async (): Promise<UserProfile[]> => {
+  try {
+    const { data, error } = await supabaseUntyped
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error("Error fetching all profiles:", error);
+      return [];
+    }
+    return (data ?? []) as UserProfile[];
   } catch (err) {
     console.error("Supabase service error:", err);
     return [];
