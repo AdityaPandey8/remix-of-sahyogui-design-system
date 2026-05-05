@@ -79,7 +79,7 @@ const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "invites", label: "Invite Codes", icon: UserCheck },
   { id: "moderation", label: "Moderation", icon: ShieldOff },
   { id: "activity", label: "Activity", icon: Activity },
-  { id: "publics", label: "Public Accounts", icon: User },
+  { id: "publics", label: "Registered Users", icon: User },
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "history", label: "History", icon: History },
   { id: "settings", label: "Settings", icon: Settings },
@@ -230,18 +230,20 @@ export default function DashboardAdmin() {
 
   const reloadCore = async () => {
     try {
-      const [issues, ngos, volunteers, alerts, publics] = await Promise.all([
+      const [issues, ngos, volunteers, alerts, publics, all] = await Promise.all([
         getIssues(),
         getNGOs(),
         getVolunteers(),
         getAlerts(),
         getPublicUsers(),
+        getAllProfiles(),
       ]);
       setIssueList(issues);
       setNgoList(ngos);
       setVolList(volunteers);
       setAlertList(alerts);
       setPublicUsers(publics);
+      setAllProfiles(all);
     } catch (error) {
       toast.error("Failed to load admin dashboard data");
     }
