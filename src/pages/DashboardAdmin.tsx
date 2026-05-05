@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { type Issue, type NGO, type Volunteer, type PastCrisis, type Alert as AlertType, type Poll, type DiscussionComment, type AIWeights, polls as seedPolls, discussions as seedDiscussions, defaultAIWeights } from "@/data/mockData";
-import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, updateUserStatus } from "@/lib/supabase-service";
+import { getIssues, getNGOs, getVolunteers, getAlerts, createIssue, updateIssueStatus, updateVolunteerStatus, getPublicUsers, getAllProfiles, updateUserStatus } from "@/lib/supabase-service";
 import { supabase } from "@/integrations/supabase/client";
 import { AIChatWidget } from "@/components/dashboard/AIChatWidget";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
@@ -79,7 +79,7 @@ const sidebarItems: { id: AdminSection; label: string; icon: any }[] = [
   { id: "invites", label: "Invite Codes", icon: UserCheck },
   { id: "moderation", label: "Moderation", icon: ShieldOff },
   { id: "activity", label: "Activity", icon: Activity },
-  { id: "publics", label: "Public Accounts", icon: User },
+  { id: "publics", label: "Registered Users", icon: User },
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "history", label: "History", icon: History },
   { id: "settings", label: "Settings", icon: Settings },
@@ -100,6 +100,7 @@ export default function DashboardAdmin() {
   const [volList, setVolList] = useState<Volunteer[]>([]);
   const [alertList, setAlertList] = useState<AlertType[]>([]);
   const [publicUsers, setPublicUsers] = useState<UserProfile[]>([]);
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [pollList, setPollList] = useState<Poll[]>(seedPolls);
   const [commentList, setCommentList] = useState<DiscussionComment[]>(seedDiscussions);
   const [aiWeights, setAiWeights] = useState<AIWeights>(defaultAIWeights);
@@ -151,8 +152,9 @@ export default function DashboardAdmin() {
     };
 
     const fetchPublics = async () => {
-      const users = await getPublicUsers();
-      setPublicUsers(users);
+      const [pub, all] = await Promise.all([getPublicUsers(), getAllProfiles()]);
+      setPublicUsers(pub);
+      setAllProfiles(all);
     };
 
     if (section === "verification") {
@@ -228,18 +230,20 @@ export default function DashboardAdmin() {
 
   const reloadCore = async () => {
     try {
-      const [issues, ngos, volunteers, alerts, publics] = await Promise.all([
+      const [issues, ngos, volunteers, alerts, publics, all] = await Promise.all([
         getIssues(),
         getNGOs(),
         getVolunteers(),
         getAlerts(),
         getPublicUsers(),
+        getAllProfiles(),
       ]);
       setIssueList(issues);
       setNgoList(ngos);
       setVolList(volunteers);
       setAlertList(alerts);
       setPublicUsers(publics);
+      setAllProfiles(all);
     } catch (error) {
       toast.error("Failed to load admin dashboard data");
     }
@@ -769,27 +773,39 @@ export default function DashboardAdmin() {
         return (
           <div className="space-y-6">
              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2.5">
-                <User className="h-5 w-5 text-primary" /> Public User Accounts
+                <User className="h-5 w-5 text-primary" /> All Registered Users ({allProfiles.length})
              </h2>
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+               {(["public","volunteer","ngo","admin"] as const).map(r => (
+                 <div key={r} className="rounded-xl border bg-card/40 p-3">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{r}</p>
+                   <p className="text-2xl font-bold">{allProfiles.filter(p => p.role === r).length}</p>
+                 </div>
+               ))}
+             </div>
              <div className="rounded-2xl border bg-card/40 backdrop-blur-md overflow-hidden shadow-xl shadow-primary/5">
                 <Table>
                    <TableHeader className="bg-muted/50">
                       <TableRow>
-                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">User ID / Email</TableHead>
+                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">User</TableHead>
+                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Role</TableHead>
                          <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Joined</TableHead>
                          <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Status</TableHead>
                          <TableHead className="text-right font-bold text-xs uppercase tracking-widest text-muted-foreground">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
-                      {publicUsers.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">No public accounts found</TableCell></TableRow>
+                      {allProfiles.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No registered users found</TableCell></TableRow>
                       ) : (
-                        publicUsers.map((u) => (
+                        allProfiles.map((u) => (
                           <TableRow key={u.id}>
                              <TableCell>
                                 <p className="font-bold text-sm">{u.email || "No Email"}</p>
                                 <p className="text-[10px] text-muted-foreground font-mono">{u.id}</p>
+                             </TableCell>
+                             <TableCell>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-primary/10 text-primary">{u.role}</span>
                              </TableCell>
                              <TableCell><p className="text-xs">{new Date(u.created_at).toLocaleDateString()}</p></TableCell>
                              <TableCell>
