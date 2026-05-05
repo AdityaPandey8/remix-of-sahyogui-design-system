@@ -771,27 +771,39 @@ export default function DashboardAdmin() {
         return (
           <div className="space-y-6">
              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2.5">
-                <User className="h-5 w-5 text-primary" /> Public User Accounts
+                <User className="h-5 w-5 text-primary" /> All Registered Users ({allProfiles.length})
              </h2>
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+               {(["public","volunteer","ngo","admin"] as const).map(r => (
+                 <div key={r} className="rounded-xl border bg-card/40 p-3">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{r}</p>
+                   <p className="text-2xl font-bold">{allProfiles.filter(p => p.role === r).length}</p>
+                 </div>
+               ))}
+             </div>
              <div className="rounded-2xl border bg-card/40 backdrop-blur-md overflow-hidden shadow-xl shadow-primary/5">
                 <Table>
                    <TableHeader className="bg-muted/50">
                       <TableRow>
-                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">User ID / Email</TableHead>
+                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">User</TableHead>
+                         <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Role</TableHead>
                          <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Joined</TableHead>
                          <TableHead className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Status</TableHead>
                          <TableHead className="text-right font-bold text-xs uppercase tracking-widest text-muted-foreground">Actions</TableHead>
                       </TableRow>
                    </TableHeader>
                    <TableBody>
-                      {publicUsers.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">No public accounts found</TableCell></TableRow>
+                      {allProfiles.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No registered users found</TableCell></TableRow>
                       ) : (
-                        publicUsers.map((u) => (
+                        allProfiles.map((u) => (
                           <TableRow key={u.id}>
                              <TableCell>
                                 <p className="font-bold text-sm">{u.email || "No Email"}</p>
                                 <p className="text-[10px] text-muted-foreground font-mono">{u.id}</p>
+                             </TableCell>
+                             <TableCell>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-primary/10 text-primary">{u.role}</span>
                              </TableCell>
                              <TableCell><p className="text-xs">{new Date(u.created_at).toLocaleDateString()}</p></TableCell>
                              <TableCell>
